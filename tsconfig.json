@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+      "esModuleInterop": true,
+      "experimentalDecorators": true,
+      "downlevelIteration": true,
+      "module": "CommonJS",
+      "moduleResolution": "node",
+      "noImplicitAny": false,
+      "outDir": "./dist/",
+      "rootDir": "./src/",
+      "sourceMap": true,
+      "strict": true,
+      "target": "ES5",                       
+    },
+    "exclude": [
+      "node_modules"
+    ]
+  }
