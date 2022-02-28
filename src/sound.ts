@@ -39,12 +39,13 @@ export default class Sound {
 
     }
     reStart(): void{
-        this._play(this._playedTime);
+        this.play(this._playedTime);
     }
     start(): void{
-        this._play(0);
+        this._playedTime = 0;
+        this.play(0);
     }
-    private _play(offset: number = 0): void{
+    play(offset: number = 0): void{
         if(!this._cxt || !this._buffer || !this._gainNode){
             return;
         }
@@ -69,11 +70,14 @@ export default class Sound {
         this._startedTime = cxt.currentTime;
 
         this._playing = true;
-        if(!this.loop) this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
+        if(!this.loop) {
+           // this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
+        }
     }
     stop(): void{
         if(this._playing && this._sourceNode){
             this._sourceNode.stop(0);
+            this._sourceNode.disconnect(0);
             this._endThen();
         }
     }
@@ -87,6 +91,7 @@ export default class Sound {
     }
     private _clearTimer(): void{
         clearTimeout(this._endTimer!);
+        this._endTimer = undefined;
     }
     private _endThen(): void{
         this._playing = false;

@@ -171,12 +171,13 @@ var Sound = /** @class */ (function () {
         this._gainNode.connect(cxt.destination);
     };
     Sound.prototype.reStart = function () {
-        this._play(this._playedTime);
+        this.play(this._playedTime);
     };
     Sound.prototype.start = function () {
-        this._play(0);
+        this._playedTime = 0;
+        this.play(0);
     };
-    Sound.prototype._play = function (offset) {
+    Sound.prototype.play = function (offset) {
         if (offset === void 0) { offset = 0; }
         if (!this._cxt || !this._buffer || !this._gainNode) {
             return;
@@ -192,12 +193,14 @@ var Sound = /** @class */ (function () {
         this._sourceNode = sourceNode;
         this._startedTime = cxt.currentTime;
         this._playing = true;
-        if (!this.loop)
-            this._endTimer = setTimeout(this._endThen.bind(this), this._duration * 1000);
+        if (!this.loop) {
+            // this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
+        }
     };
     Sound.prototype.stop = function () {
         if (this._playing && this._sourceNode) {
             this._sourceNode.stop(0);
+            this._sourceNode.disconnect(0);
             this._endThen();
         }
     };
@@ -211,6 +214,7 @@ var Sound = /** @class */ (function () {
     };
     Sound.prototype._clearTimer = function () {
         clearTimeout(this._endTimer);
+        this._endTimer = undefined;
     };
     Sound.prototype._endThen = function () {
         this._playing = false;
