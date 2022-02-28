@@ -33,7 +33,7 @@ export default class SoundMaster{
             document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
         }
     }
-    addSound(id: string, src: string): SoundMaster{
+    addResource(id: string, src: string): SoundMaster{
         this.loader.add(id, src);
         return this;
     }

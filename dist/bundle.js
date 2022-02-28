@@ -118,7 +118,7 @@ var SoundMaster = /** @class */ (function () {
             document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
         }
     };
-    SoundMaster.prototype.addSound = function (id, src) {
+    SoundMaster.prototype.addResource = function (id, src) {
         this.loader.add(id, src);
         return this;
     };
@@ -184,6 +184,8 @@ var Sound = /** @class */ (function () {
         var cxt = this._cxt;
         this._sourceNode = cxt.createBufferSource();
         this._sourceNode.buffer = this._buffer;
+        this._sourceNode.loop = this._loop;
+        this._gainNode.gain.value = this._volume;
         var sourceNode = this._sourceNode;
         sourceNode.connect(this._gainNode);
         sourceNode.start(0, offset);

@@ -1,13 +1,13 @@
 function main(){
     const master = new NARAS.SoundMaster();
-    master.addSound('arigato', './sounds/arigato.wav');
+    master.addResource('arigato', './sounds/arigato.wav');
     master.loadAll();
     
     
 
     const setup = () => {
 
-        const sound = new NARAS.Sound(master.loader.get('arigato'));
+        const sound = new NARAS.Sound(master.loader.get('arigato'), {volume: 2, loop: false});
         master.addChild(sound);
 
         const play = () => {
