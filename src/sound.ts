@@ -18,6 +18,7 @@ export default class Sound {
     private _loop: boolean = false;
     private _volume: number = 1;
     parent: SoundMaster | undefined;
+
     constructor(buf: AudioBuffer, options?: IOptions){
         this._buffer = buf;
         this._duration = buf.duration;
@@ -25,6 +26,7 @@ export default class Sound {
         this.loop = options?.loop || false;
         this.volume = options?.volume || 1;
     }
+
     set buffer(buffer: AudioBuffer){
         this._buffer = buffer;
         this._duration = buffer.duration;
@@ -52,6 +54,9 @@ export default class Sound {
 
         this._sourceNode = cxt.createBufferSource()!;
         this._sourceNode.buffer = this._buffer;
+
+        this._sourceNode.loop = this._loop;
+        this._gainNode.gain.value = this._volume;
 
         const sourceNode = this._sourceNode;
 
