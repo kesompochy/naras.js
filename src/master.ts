@@ -1,4 +1,5 @@
 import Loader from './loader';
+import Sound from './sound';
 
 declare global {
     interface Window {
@@ -13,21 +14,34 @@ export default class SoundMaster{
     private _masterGain: GainNode = this.cxt.createGain();
     private _unlockEvents: string[] = ['click', 'scroll', 'touchstart'];
 
-    loader: Loader = new Loader();
+    children: Sound[] = [];
+
+    loader: Loader = new Loader(this.cxt);
     constructor(){
         this._masterGain.connect(this.cxt.destination);
 
-        //for(let i=0, len=this._unlockEvents.length;i<len;i++){
-        //    document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), {once: true});
-        //}
-        this.initContext();
+        for(let i=0, len=this._unlockEvents.length;i<len;i++){
+            document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), {once: true});
+        }
+        this._initContext();
     }
-    initContext(): void{
+    private _initContext(): void{
         if(this.cxt.state === 'suspended'){
             this.cxt.resume();
         }
         for(let i=0, len=this._unlockEvents.length;i<len;i++){
-            document.removeEventListener(this._unlockEvents[i], this.initContext.bind(this));
+            document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
         }
+    }
+    addSound(id: string, src: string): SoundMaster{
+        this.loader.add(id, src);
+        return this;
+    }
+    loadAll(): void{
+        this.loader.loadAll();
+    }
+    addChild(sound: Sound){
+        this.children.push(sound);
+        sound.acquireContext(this.cxt);
     }
 }

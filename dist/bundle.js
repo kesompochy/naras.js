@@ -41,10 +41,11 @@ exports.SoundMaster = master_1.default;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 var Loader = /** @class */ (function () {
-    function Loader() {
+    function Loader(cxt) {
         this.resources = new Map();
         this.tasks = [];
         this._loadThen = function () { };
+        this._cxt = cxt;
     }
     Loader.prototype.add = function (id, src) {
         var promise = this._promiseLoadingSound(id, src);
@@ -63,9 +64,12 @@ var Loader = /** @class */ (function () {
         var _this = this;
         var promise = new Promise(function (resolve) {
             fetch(src).then(function (res) {
-                var data = res.arrayBuffer();
-                _this.resources.set(id, data);
-                resolve(data);
+                return res.arrayBuffer();
+            }).then(function (data) {
+                return _this._cxt.decodeAudioData(data);
+            }).then(function (buf) {
+                _this.resources.set(id, buf);
+                resolve(buf);
             });
         });
         return promise;
@@ -98,20 +102,32 @@ var SoundMaster = /** @class */ (function () {
         this.cxt = new AudioContext();
         this._masterGain = this.cxt.createGain();
         this._unlockEvents = ['click', 'scroll', 'touchstart'];
-        this.loader = new loader_1.default();
+        this.children = [];
+        this.loader = new loader_1.default(this.cxt);
         this._masterGain.connect(this.cxt.destination);
-        //for(let i=0, len=this._unlockEvents.length;i<len;i++){
-        //    document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), {once: true});
-        //}
-        this.initContext();
+        for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
+            document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), { once: true });
+        }
+        this._initContext();
     }
-    SoundMaster.prototype.initContext = function () {
+    SoundMaster.prototype._initContext = function () {
         if (this.cxt.state === 'suspended') {
             this.cxt.resume();
         }
         for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
-            document.removeEventListener(this._unlockEvents[i], this.initContext.bind(this));
+            document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
         }
+    };
+    SoundMaster.prototype.addSound = function (id, src) {
+        this.loader.add(id, src);
+        return this;
+    };
+    SoundMaster.prototype.loadAll = function () {
+        this.loader.loadAll();
+    };
+    SoundMaster.prototype.addChild = function (sound) {
+        this.children.push(sound);
+        sound.acquireContext(this.cxt);
     };
     return SoundMaster;
 }());
@@ -129,64 +145,79 @@ exports["default"] = SoundMaster;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 var Sound = /** @class */ (function () {
-    function Sound(acxt) {
+    function Sound(buf, options) {
+        this._playing = false;
         this._duration = 0;
-        this.playing = false;
-        this._volume = 1;
+        this._startedTime = 0;
+        this._playedTime = 0;
         this._loop = false;
-        this._startTime = 0;
-        this.playedTime = 0;
-        this.acxt = acxt;
-        var cxt = acxt.cxt;
-        this._bufferSource = cxt.createBufferSource();
+        this._volume = 1;
+        this._buffer = buf;
+        this._duration = buf.duration;
+        this.loop = (options === null || options === void 0 ? void 0 : options.loop) || false;
+        this.volume = (options === null || options === void 0 ? void 0 : options.volume) || 1;
+    }
+    Object.defineProperty(Sound.prototype, "buffer", {
+        set: function (buffer) {
+            this._buffer = buffer;
+            this._duration = buffer.duration;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Sound.prototype.acquireContext = function (cxt) {
+        this._cxt = cxt;
         this._gainNode = cxt.createGain();
         this._gainNode.connect(cxt.destination);
-    }
-    Sound.prototype.play = function () {
-        var cxt = this.acxt.cxt;
-        var sourceBuffer = cxt.createBufferSource();
-        sourceBuffer.buffer = this._buffer;
-        sourceBuffer.loop = this._loop;
-        sourceBuffer.connect(this._gainNode);
-        sourceBuffer.start(0, this.playedTime);
-        this._bufferSource = sourceBuffer;
-        this._startTime = cxt.currentTime;
-        this.playing = true;
-        if (!this._loop)
-            this._endTimer = setTimeout(this.endThen.bind(this), this._duration * 1000);
+    };
+    Sound.prototype.reStart = function () {
+        this._play(this._playedTime);
+    };
+    Sound.prototype.start = function () {
+        this._play(0);
+    };
+    Sound.prototype._play = function (offset) {
+        if (offset === void 0) { offset = 0; }
+        if (!this._cxt || !this._buffer || !this._gainNode) {
+            return;
+        }
+        var cxt = this._cxt;
+        this._sourceNode = cxt.createBufferSource();
+        this._sourceNode.buffer = this._buffer;
+        var sourceNode = this._sourceNode;
+        sourceNode.connect(this._gainNode);
+        sourceNode.start(0, offset);
+        this._sourceNode = sourceNode;
+        this._startedTime = cxt.currentTime;
+        this._playing = true;
+        if (!this.loop)
+            this._endTimer = setTimeout(this._endThen.bind(this), this._duration * 1000);
+    };
+    Sound.prototype.stop = function () {
+        if (this._playing && this._sourceNode) {
+            this._sourceNode.stop(0);
+            this._endThen();
+        }
     };
     Sound.prototype.pause = function () {
-        if (this.playing) {
-            this.playedTime = (this.playedTime + this.acxt.cxt.currentTime - this._startTime) % this._duration;
-            this.playing = false;
-            this._bufferSource.stop(0);
+        if (this._playing) {
+            this._playedTime = (this._playedTime + this._cxt.currentTime - this._startedTime) % this._duration;
+            this._playing = false;
+            this._sourceNode.stop(0);
             this._clearTimer();
         }
     };
     Sound.prototype._clearTimer = function () {
         clearTimeout(this._endTimer);
     };
-    Sound.prototype.stop = function () {
-        if (this.playing)
-            this._bufferSource.stop(0);
-        this.endThen();
+    Sound.prototype._endThen = function () {
+        this._playing = false;
+        this._playedTime = 0;
+        this._sourceNode.disconnect(0);
     };
-    Sound.prototype.endThen = function () {
-        this.playing = false;
-        this._bufferSource.disconnect(0);
-    };
-    Object.defineProperty(Sound.prototype, "buffer", {
-        set: function (buf) {
-            this._buffer = buf;
-            this._duration = buf.duration;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Sound.prototype, "volume", {
-        set: function (vol) {
-            this._volume = vol;
-            this._gainNode.gain.value = vol;
+    Object.defineProperty(Sound.prototype, "playing", {
+        get: function () {
+            return this._playing;
         },
         enumerable: false,
         configurable: true
@@ -195,8 +226,24 @@ var Sound = /** @class */ (function () {
         get: function () {
             return this._loop;
         },
-        set: function (bool) {
-            this._loop = bool;
+        set: function (flag) {
+            this._loop = flag;
+            if (this._sourceNode) {
+                this._sourceNode.loop = flag;
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Sound.prototype, "volume", {
+        get: function () {
+            return this._volume;
+        },
+        set: function (value) {
+            this._volume = value;
+            if (this._gainNode) {
+                this._gainNode.gain.value = value;
+            }
         },
         enumerable: false,
         configurable: true
