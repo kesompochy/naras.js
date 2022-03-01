@@ -1,22 +1,44 @@
 import Master from './master';
 
 abstract class AbstractSounder {
-    abstract startFunc: Function;
-    abstract stopFunc: Function;
-    abstract pauseFunc: Function;
-    abstract restartFunc: Function;
+    protected abstract startFunc: Function;
+    protected abstract stopFunc: Function;
+    protected abstract pauseFunc: Function;
+    protected abstract restartFunc: Function;
 }
 
-interface IOptions {
-    volume: number;
-    loop: boolean;
+export interface IDelayParams {
+    interval: number;
+    attenuation: number;
 }
 
+
+export interface IOptions {
+    volume?: number;
+    loop?: boolean;
+    pitch?: number;
+    delay?: IDelayParams | null;
+}
+
+
+export const defaultOptions: IOptions = {
+    volume: 1,
+    loop: false,
+    pitch: 1,
+    delay: null
+}
+
+export const defaultDelayParams: IDelayParams = {
+    interval: 0.05,
+    attenuation: 0.5
+}
+
+const funcSuffix = 'Func';
 
 export default class Container extends AbstractSounder{
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
-    private _inputNode: AudioNode = Master.cxt.createGain();
-    outputNode: AudioNode = Master.cxt.createGain();
+    protected _inputNode: AudioNode = Master.cxt.createGain();
+    protected outputNode: AudioNode = Master.cxt.createGain();
     protected _gainNode: GainNode = Master.cxt.createGain();
     protected _cxt: AudioContext = Master.cxt;
     protected _volume: number = 1;
@@ -24,10 +46,11 @@ export default class Container extends AbstractSounder{
     private _attenuator: GainNode = Master.cxt.createGain();
     private _delayNode: DelayNode = Master.cxt.createDelay();
     private _delaySwitch: AudioNode = Master.cxt.createGain();
+    private _delay: IDelayParams = defaultDelayParams;
     readonly children: Container[] = [];
     parent: Container | undefined;
     
-    constructor(options?: IOptions){
+    constructor(options?: IOptions | undefined){
         super();
         this._inputNode.connect(this._gainNode);
         this._gainNode.connect(this.outputNode);
@@ -35,11 +58,23 @@ export default class Container extends AbstractSounder{
         this._attenuator.connect(this._delayNode);
         this._delayNode.connect(this._attenuator);
         this._delayNode.connect(this._delaySwitch);
+
+        if(!options) options = defaultOptions;
+
+        this.volume = options.volume || defaultOptions.volume!;
+        this.pitch = options.pitch || defaultOptions.pitch!;
+
+        if(options.delay){
+            this.useDelay();
+            this.delay = options.delay;
+        }
+
+        this._inputNode.connect(this._delayNode);
     }
-    private _useDelay(){
+    protected useDelay(){
         this._delaySwitch.connect(this._gainNode);
     }
-    private _unuseDelay(){
+    protected unuseDelay(){
         this._delaySwitch.disconnect(0);
     }
     addChild(obj: Container){
@@ -51,13 +86,13 @@ export default class Container extends AbstractSounder{
     private _makeAllChildrenDo(funcName: string){
         const children = this.children;
         for(let i=0, len=children.length;i<len;i++){
-            children[i][funcName]();
+            children[i][funcName + funcSuffix]();
         }
     }
     start(){
         this.startFunc();
 
-        this._makeAllChildrenDo('play');
+        this._makeAllChildrenDo('start');
     }
     stop(){
         this.stopFunc();
@@ -96,6 +131,14 @@ export default class Container extends AbstractSounder{
         } else {
             return this.pitch;
         }
+    }
+    set delay(options: IDelayParams){
+        this._delay = options;
+        this._attenuator.gain.value = options.attenuation;
+        this._delayNode.delayTime.value = options.interval;
+    }
+    get delay(): IDelayParams{
+        return this._delay;
     }
 }
 

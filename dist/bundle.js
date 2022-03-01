@@ -87,13 +87,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MasterContainer = void 0;
+exports.MasterContainer = exports.defaultDelayParams = exports.defaultOptions = void 0;
 var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
 var AbstractSounder = /** @class */ (function () {
     function AbstractSounder() {
     }
     return AbstractSounder;
 }());
+exports.defaultOptions = {
+    volume: 1,
+    loop: false,
+    pitch: 1,
+    delay: null
+};
+exports.defaultDelayParams = {
+    interval: 0.05,
+    attenuation: 0.5
+};
+var funcSuffix = 'Func';
 var Container = /** @class */ (function (_super) {
     __extends(Container, _super);
     function Container(options) {
@@ -108,6 +119,7 @@ var Container = /** @class */ (function (_super) {
         _this._attenuator = master_1.default.cxt.createGain();
         _this._delayNode = master_1.default.cxt.createDelay();
         _this._delaySwitch = master_1.default.cxt.createGain();
+        _this._delay = exports.defaultDelayParams;
         _this.children = [];
         _this.startFunc = function () { };
         _this.stopFunc = function () { };
@@ -118,12 +130,21 @@ var Container = /** @class */ (function (_super) {
         _this._attenuator.connect(_this._delayNode);
         _this._delayNode.connect(_this._attenuator);
         _this._delayNode.connect(_this._delaySwitch);
+        if (!options)
+            options = exports.defaultOptions;
+        _this.volume = options.volume || exports.defaultOptions.volume;
+        _this.pitch = options.pitch || exports.defaultOptions.pitch;
+        if (options.delay) {
+            _this.useDelay();
+            _this.delay = options.delay;
+        }
+        _this._inputNode.connect(_this._delayNode);
         return _this;
     }
-    Container.prototype._useDelay = function () {
+    Container.prototype.useDelay = function () {
         this._delaySwitch.connect(this._gainNode);
     };
-    Container.prototype._unuseDelay = function () {
+    Container.prototype.unuseDelay = function () {
         this._delaySwitch.disconnect(0);
     };
     Container.prototype.addChild = function (obj) {
@@ -134,12 +155,12 @@ var Container = /** @class */ (function (_super) {
     Container.prototype._makeAllChildrenDo = function (funcName) {
         var children = this.children;
         for (var i = 0, len = children.length; i < len; i++) {
-            children[i][funcName]();
+            children[i][funcName + funcSuffix]();
         }
     };
     Container.prototype.start = function () {
         this.startFunc();
-        this._makeAllChildrenDo('play');
+        this._makeAllChildrenDo('start');
     };
     Container.prototype.stop = function () {
         this.stopFunc();
@@ -182,6 +203,18 @@ var Container = /** @class */ (function (_super) {
             else {
                 return this.pitch;
             }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "delay", {
+        get: function () {
+            return this._delay;
+        },
+        set: function (options) {
+            this._delay = options;
+            this._attenuator.gain.value = options.attenuation;
+            this._delayNode.delayTime.value = options.interval;
         },
         enumerable: false,
         configurable: true
@@ -334,12 +367,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-var container_1 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
+var container_1 = __webpack_require__(/*! ./container */ "./src/container.ts");
+var defaultSoundOptions = Object.assign(container_1.defaultOptions, { loop: false });
+var container_2 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
 //メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
 var Sound = /** @class */ (function (_super) {
     __extends(Sound, _super);
     function Sound(buf, options) {
-        var _this = _super.call(this) || this;
+        var _this = _super.call(this, options) || this;
         _this._duration = 0;
         _this._playedTime = 0;
         _this._startedTime = 0;
@@ -368,10 +403,10 @@ var Sound = /** @class */ (function (_super) {
         };
         _this._buffer = buf;
         _this._duration = buf.duration;
+        if (!options)
+            options = defaultSoundOptions;
+        _this.loop = options.loop || defaultSoundOptions.loop;
         return _this;
-        /*
-        this.loop = options?.loop || false;
-        this.volume = options?.volume || 1;*/
     }
     Object.defineProperty(Sound.prototype, "buffer", {
         set: function (buffer) {
@@ -391,9 +426,8 @@ var Sound = /** @class */ (function (_super) {
         this._sourceNode.buffer = this._buffer;
         this._sourceNode.loop = this._loop;
         this._sourceNode.playbackRate.value = this._pitch;
-        this._gainNode.gain.value = this._volume;
         var sourceNode = this._sourceNode;
-        sourceNode.connect(this._gainNode);
+        sourceNode.connect(this._inputNode);
         sourceNode.start(0, offset);
         this._sourceNode = sourceNode;
         this._startedTime = cxt.currentTime;
@@ -437,7 +471,7 @@ var Sound = /** @class */ (function (_super) {
         configurable: true
     });
     return Sound;
-}(container_1.default));
+}(container_2.default));
 exports["default"] = Sound;
 
 
