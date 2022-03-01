@@ -1,1 +1,3 @@
 node_modules/
+test/
+dest/bundle.js
