@@ -35,8 +35,6 @@ export default class Sound {
         this._cxt = cxt;
         this._gainNode = cxt.createGain();
         this._gainNode.connect(cxt.destination);
-
-
     }
     reStart(): void{
         this.play(this._playedTime);
@@ -71,7 +69,8 @@ export default class Sound {
 
         this._playing = true;
         if(!this.loop) {
-           // this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
+            if(this._endTimer) this._clearTimer(); 
+           this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
         }
     }
     stop(): void{
