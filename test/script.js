@@ -7,13 +7,15 @@ function main(){
 
 
     const setup = () => {
-        const sound = new NARAS.Sound(app.loader.getResource('arigato'));
-        app.masterContainer.addChild(sound);
+        const sound = new NARAS.Sound(app.loader.getResource('arigato'), );
+        //app.masterContainer.addChild(sound);
         
-        
+        const container = new NARAS.Container();
+        app.masterContainer.addChild(container);
+        container.addChild(sound);
 
         const play = () => {
-            sound.start();
+            container.start();
         }
 
         document.addEventListener('click', play);

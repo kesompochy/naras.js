@@ -1,7 +1,10 @@
-interface IOptions {
-    volume: number;
-    loop: boolean;
+import { IOptions, defaultOptions } from './container';
+
+interface ISoundOptions extends IOptions{
+    loop?: boolean;
 }
+
+const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
 
 import Container from './container';
 
@@ -17,28 +20,23 @@ export default class Sound extends Container{
     private _playing: boolean = false;
     private _endTimer: NodeJS.Timeout | undefined;
 
-    constructor(buf: AudioBuffer, options?: IOptions){
-        super();
-        this._buffer = buf;
+    constructor(buf: AudioBuffer, options?: ISoundOptions){
         
+        super(options);
+        this._buffer = buf;
         this._duration = buf.duration;
 
-        /*
-        this.loop = options?.loop || false;
-        this.volume = options?.volume || 1;*/
+        if(!options) options = defaultSoundOptions;
+
+        this.loop = options.loop || defaultSoundOptions.loop!;
     }
+
 
     set buffer(buffer: AudioBuffer){
         this._buffer = buffer;
         this._duration = buffer.duration;
     }
-    reStartFunc: Function = () => {
-        this._play(this._playedTime);
-    }
-    startFunc: Function = () => {
-        this._playedTime = 0;
-        this._play(0);
-    }
+
     private _play(offset: number = 0){
         if(!this._buffer){
             return;
@@ -51,12 +49,11 @@ export default class Sound extends Container{
 
         this._sourceNode.loop = this._loop;
         this._sourceNode.playbackRate.value = this._pitch;
-        this._gainNode.gain.value = this._volume;
+        
 
         const sourceNode = this._sourceNode;
 
-        sourceNode.connect(this._gainNode);
-
+        sourceNode.connect(this._inputNode);
 
         sourceNode.start(0, offset);
 
@@ -80,6 +77,13 @@ export default class Sound extends Container{
         }
     }
 
+    reStartFunc: Function = () => {
+        this._play(this._playedTime);
+    }
+    startFunc: Function = () => {
+        this._playedTime = 0;
+        this._play(0);
+    }
     stopFunc: Function = () =>{
         if(this._playing && this._sourceNode){
             this._sourceNode.stop(0);
