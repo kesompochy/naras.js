@@ -29,6 +29,8 @@ export default class Sound extends Container{
         if(!options) options = defaultSoundOptions;
 
         this.loop = options.loop || defaultSoundOptions.loop!;
+
+        this.actionFuncs = {play: this.playFunc, restart: this.restartFunc, stop: this.stopFunc, pause: this.pauseFunc};
     }
 
 
@@ -81,7 +83,7 @@ export default class Sound extends Container{
     reStartFunc: Function = () => {
         this._play(this._playedTime);
     }
-    startFunc: Function = () => {
+    playFunc: Function = () => {
         this._playedTime = 0;
         this._play(0);
     }
