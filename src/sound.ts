@@ -71,6 +71,8 @@ export default class Sound extends Container{
            this._sourceNode.onended = ()=>{this._endThen()};
         }
     }
+
+
     stopFunc: Function = () =>{
         if(this._playing && this._sourceNode){
             this._sourceNode.stop(0);
