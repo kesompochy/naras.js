@@ -1,19 +1,20 @@
+import Master from './master';
+
 export default class Loader{
-    resources: Map<string, any> = new Map();
-    tasks: Array<Promise<unknown>> = [];
-    private _loadThen: Function = function(){}
-    _cxt: AudioContext;
-    constructor(cxt: AudioContext){
-        this._cxt = cxt;
-    }
+    private _resources: Map<string, AudioBuffer> = new Map();
+    private _datas: Map<string, ArrayBuffer> = new Map();
+    private _tasks: Array<Promise<unknown>> = [];
+    private _loadThen: Function = function(){};
+    private _cxt: AudioContext = Master.cxt;
+
 
     add(id: string, src: string): Loader{
         const promise = this._promiseLoadingSound(id, src);
-        this.tasks.push(promise);
+        this._tasks.push(promise);
         return this;
     }
     loadAll(): void{
-        Promise.all(this.tasks)
+        Promise.all(this._tasks)
             .then(()=>{this._loadThen();});
     }
     loadThen(func: Function){
@@ -24,16 +25,20 @@ export default class Loader{
             fetch(src).then((res)=>{
                 return res.arrayBuffer();
             }).then((data)=>{
+                this._datas.set(id, data);
                 return this._cxt.decodeAudioData(data);
             }).then((buf)=>{
-                this.resources.set(id, buf);
+                this._resources.set(id, buf);
                 resolve(buf);
             })
         });
 
         return promise;
     }
-    get(id: string){
-        return this.resources.get(id);
+    getResource(id: string): AudioBuffer | undefined{
+        return this._resources.get(id);
+    }
+    getData(id: string): ArrayBuffer | undefined{
+        return this._datas.get(id);
     }
 }

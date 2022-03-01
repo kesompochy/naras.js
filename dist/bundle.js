@@ -12,6 +12,197 @@ return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./src/application.ts":
+/*!****************************!*\
+  !*** ./src/application.ts ***!
+  \****************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var loader_1 = __importDefault(__webpack_require__(/*! ./loader */ "./src/loader.ts"));
+var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var container_1 = __webpack_require__(/*! ./container */ "./src/container.ts");
+var App = /** @class */ (function () {
+    function App() {
+        this.loader = new loader_1.default();
+        this.masterContainer = new container_1.MasterContainer();
+        this._unlockEvents = ['click', 'scroll', 'touchstart'];
+        for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
+            document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), { once: true });
+        }
+        this._initContext();
+    }
+    App.prototype._initContext = function () {
+        if (master_1.default.cxt.state === 'suspended') {
+            master_1.default.cxt.resume();
+        }
+        for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
+            document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
+        }
+    };
+    App.prototype.addResource = function (id, src) {
+        this.loader.add(id, src);
+        return this;
+    };
+    App.prototype.loadAll = function () {
+        this.loader.loadAll();
+    };
+    App.prototype.loadThen = function (func) {
+        this.loader.loadThen(func);
+    };
+    return App;
+}());
+exports["default"] = App;
+
+
+/***/ }),
+
+/***/ "./src/container.ts":
+/*!**************************!*\
+  !*** ./src/container.ts ***!
+  \**************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MasterContainer = void 0;
+var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var AbstractSounder = /** @class */ (function () {
+    function AbstractSounder() {
+    }
+    return AbstractSounder;
+}());
+var Container = /** @class */ (function (_super) {
+    __extends(Container, _super);
+    function Container(options) {
+        var _this = _super.call(this) || this;
+        //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
+        _this._inputNode = master_1.default.cxt.createGain();
+        _this.outputNode = master_1.default.cxt.createGain();
+        _this._gainNode = master_1.default.cxt.createGain();
+        _this._cxt = master_1.default.cxt;
+        _this._volume = 1;
+        _this._pitch = 1;
+        _this._attenuator = master_1.default.cxt.createGain();
+        _this._delayNode = master_1.default.cxt.createDelay();
+        _this._delaySwitch = master_1.default.cxt.createGain();
+        _this.children = [];
+        _this.startFunc = function () { };
+        _this.stopFunc = function () { };
+        _this.pauseFunc = function () { };
+        _this.restartFunc = function () { };
+        _this._inputNode.connect(_this._gainNode);
+        _this._gainNode.connect(_this.outputNode);
+        _this._attenuator.connect(_this._delayNode);
+        _this._delayNode.connect(_this._attenuator);
+        _this._delayNode.connect(_this._delaySwitch);
+        return _this;
+    }
+    Container.prototype._useDelay = function () {
+        this._delaySwitch.connect(this._gainNode);
+    };
+    Container.prototype._unuseDelay = function () {
+        this._delaySwitch.disconnect(0);
+    };
+    Container.prototype.addChild = function (obj) {
+        this.children.push(obj);
+        obj.outputNode.connect(this._inputNode);
+        obj.parent = this;
+    };
+    Container.prototype._makeAllChildrenDo = function (funcName) {
+        var children = this.children;
+        for (var i = 0, len = children.length; i < len; i++) {
+            children[i][funcName]();
+        }
+    };
+    Container.prototype.start = function () {
+        this.startFunc();
+        this._makeAllChildrenDo('play');
+    };
+    Container.prototype.stop = function () {
+        this.stopFunc();
+        this._makeAllChildrenDo('stop');
+    };
+    Container.prototype.pause = function () {
+        this.pauseFunc();
+        this._makeAllChildrenDo('pause');
+    };
+    Container.prototype.restart = function () {
+        this.restartFunc();
+        this._makeAllChildrenDo('restart');
+    };
+    Object.defineProperty(Container.prototype, "volume", {
+        get: function () {
+            return this._volume;
+        },
+        set: function (value) {
+            this._volume = value;
+            this._gainNode.gain.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "pitch", {
+        get: function () {
+            return this._pitch;
+        },
+        set: function (value) {
+            this._pitch = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "worldPitch", {
+        get: function () {
+            if (this.parent) {
+                return this.parent._pitch * this.pitch;
+            }
+            else {
+                return this.pitch;
+            }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return Container;
+}(AbstractSounder));
+exports["default"] = Container;
+var MasterContainer = /** @class */ (function (_super) {
+    __extends(MasterContainer, _super);
+    function MasterContainer() {
+        var _this = _super.call(this) || this;
+        _this.outputNode.connect(master_1.default.cxt.destination);
+        return _this;
+    }
+    return MasterContainer;
+}(Container));
+exports.MasterContainer = MasterContainer;
+
+
+/***/ }),
+
 /***/ "./src/index.ts":
 /*!**********************!*\
   !*** ./src/index.ts ***!
@@ -23,11 +214,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.SoundMaster = exports.Sound = void 0;
+exports.Container = exports.App = exports.SoundMaster = exports.Sound = void 0;
 var sound_1 = __importDefault(__webpack_require__(/*! ./sound */ "./src/sound.ts"));
 exports.Sound = sound_1.default;
 var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
 exports.SoundMaster = master_1.default;
+var application_1 = __importDefault(__webpack_require__(/*! ./application */ "./src/application.ts"));
+exports.App = application_1.default;
+var container_1 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
+exports.Container = container_1.default;
 
 
 /***/ }),
@@ -36,25 +231,30 @@ exports.SoundMaster = master_1.default;
 /*!***********************!*\
   !*** ./src/loader.ts ***!
   \***********************/
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
 var Loader = /** @class */ (function () {
-    function Loader(cxt) {
-        this.resources = new Map();
-        this.tasks = [];
+    function Loader() {
+        this._resources = new Map();
+        this._datas = new Map();
+        this._tasks = [];
         this._loadThen = function () { };
-        this._cxt = cxt;
+        this._cxt = master_1.default.cxt;
     }
     Loader.prototype.add = function (id, src) {
         var promise = this._promiseLoadingSound(id, src);
-        this.tasks.push(promise);
+        this._tasks.push(promise);
         return this;
     };
     Loader.prototype.loadAll = function () {
         var _this = this;
-        Promise.all(this.tasks)
+        Promise.all(this._tasks)
             .then(function () { _this._loadThen(); });
     };
     Loader.prototype.loadThen = function (func) {
@@ -66,16 +266,20 @@ var Loader = /** @class */ (function () {
             fetch(src).then(function (res) {
                 return res.arrayBuffer();
             }).then(function (data) {
+                _this._datas.set(id, data);
                 return _this._cxt.decodeAudioData(data);
             }).then(function (buf) {
-                _this.resources.set(id, buf);
+                _this._resources.set(id, buf);
                 resolve(buf);
             });
         });
         return promise;
     };
-    Loader.prototype.get = function (id) {
-        return this.resources.get(id);
+    Loader.prototype.getResource = function (id) {
+        return this._resources.get(id);
+    };
+    Loader.prototype.getData = function (id) {
+        return this._datas.get(id);
     };
     return Loader;
 }());
@@ -88,50 +292,18 @@ exports["default"] = Loader;
 /*!***********************!*\
   !*** ./src/master.ts ***!
   \***********************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ ((__unused_webpack_module, exports) => {
 
 
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-var loader_1 = __importDefault(__webpack_require__(/*! ./loader */ "./src/loader.ts"));
 var AudioContext = window.AudioContext || window.webkitAudioContext;
-var SoundMaster = /** @class */ (function () {
-    function SoundMaster() {
-        this.cxt = new AudioContext();
-        this._masterGain = this.cxt.createGain();
-        this._unlockEvents = ['click', 'scroll', 'touchstart'];
-        this.children = [];
-        this.loader = new loader_1.default(this.cxt);
-        this._masterGain.connect(this.cxt.destination);
-        for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
-            document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), { once: true });
-        }
-        this._initContext();
+var Master = /** @class */ (function () {
+    function Master() {
     }
-    SoundMaster.prototype._initContext = function () {
-        if (this.cxt.state === 'suspended') {
-            this.cxt.resume();
-        }
-        for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
-            document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
-        }
-    };
-    SoundMaster.prototype.addResource = function (id, src) {
-        this.loader.add(id, src);
-        return this;
-    };
-    SoundMaster.prototype.loadAll = function () {
-        this.loader.loadAll();
-    };
-    SoundMaster.prototype.addChild = function (sound) {
-        this.children.push(sound);
-        sound.acquireContext(this.cxt);
-    };
-    return SoundMaster;
+    Master.cxt = new AudioContext();
+    return Master;
 }());
-exports["default"] = SoundMaster;
+exports["default"] = Master;
 
 
 /***/ }),
@@ -140,24 +312,66 @@ exports["default"] = SoundMaster;
 /*!**********************!*\
   !*** ./src/sound.ts ***!
   \**********************/
-/***/ ((__unused_webpack_module, exports) => {
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+var container_1 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
 //メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
-var Sound = /** @class */ (function () {
+var Sound = /** @class */ (function (_super) {
+    __extends(Sound, _super);
     function Sound(buf, options) {
-        this._playing = false;
-        this._duration = 0;
-        this._startedTime = 0;
-        this._playedTime = 0;
-        this._loop = false;
-        this._volume = 1;
-        this._pitch = 1;
-        this._buffer = buf;
-        this._duration = buf.duration;
-        this.loop = (options === null || options === void 0 ? void 0 : options.loop) || false;
-        this.volume = (options === null || options === void 0 ? void 0 : options.volume) || 1;
+        var _this = _super.call(this) || this;
+        _this._duration = 0;
+        _this._playedTime = 0;
+        _this._startedTime = 0;
+        _this._loop = false;
+        _this._playing = false;
+        _this.reStartFunc = function () {
+            _this._play(_this._playedTime);
+        };
+        _this.startFunc = function () {
+            _this._playedTime = 0;
+            _this._play(0);
+        };
+        _this.stopFunc = function () {
+            if (_this._playing && _this._sourceNode) {
+                _this._sourceNode.stop(0);
+                _this._sourceNode.disconnect(0);
+                _this._endThen();
+            }
+        };
+        _this.pauseFunc = function () {
+            if (_this._playing) {
+                _this._playedTime = (_this._playedTime + _this._cxt.currentTime - _this._startedTime) % _this._duration;
+                _this._playing = false;
+                _this._sourceNode.stop(0);
+            }
+        };
+        _this._buffer = buf;
+        _this._duration = buf.duration;
+        return _this;
+        /*
+        this.loop = options?.loop || false;
+        this.volume = options?.volume || 1;*/
     }
     Object.defineProperty(Sound.prototype, "buffer", {
         set: function (buffer) {
@@ -167,31 +381,10 @@ var Sound = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    Sound.prototype.acquireContext = function (cxt) {
-        this._cxt = cxt;
-        this._gainNode = cxt.createGain();
-        this._gainNode.connect(cxt.destination);
-        var wetDelayNode = cxt.createGain();
-        wetDelayNode.connect(this._gainNode);
-        var feedback = cxt.createGain();
-        feedback.gain.value = 0.7;
-        var delayNode = cxt.createDelay(3);
-        delayNode.delayTime.value = 0.1;
-        feedback.connect(delayNode);
-        delayNode.connect(feedback);
-        delayNode.connect(wetDelayNode);
-        this._delayNode = delayNode;
-    };
-    Sound.prototype.reStart = function () {
-        this.play(this._playedTime);
-    };
-    Sound.prototype.start = function () {
-        this._playedTime = 0;
-        this.play(0);
-    };
-    Sound.prototype.play = function (offset) {
+    Sound.prototype._play = function (offset) {
+        var _this = this;
         if (offset === void 0) { offset = 0; }
-        if (!this._cxt || !this._buffer || !this._gainNode) {
+        if (!this._buffer) {
             return;
         }
         var cxt = this._cxt;
@@ -202,36 +395,13 @@ var Sound = /** @class */ (function () {
         this._gainNode.gain.value = this._volume;
         var sourceNode = this._sourceNode;
         sourceNode.connect(this._gainNode);
-        if (this._delayNode)
-            sourceNode.connect(this._delayNode);
         sourceNode.start(0, offset);
         this._sourceNode = sourceNode;
         this._startedTime = cxt.currentTime;
         this._playing = true;
         if (!this.loop) {
-            if (this._endTimer)
-                this._clearTimer();
-            this._endTimer = setTimeout(this._endThen.bind(this), this._duration * 1000 / this._pitch);
+            this._sourceNode.onended = function () { _this._endThen(); };
         }
-    };
-    Sound.prototype.stop = function () {
-        if (this._playing && this._sourceNode) {
-            this._sourceNode.stop(0);
-            this._sourceNode.disconnect(0);
-            this._endThen();
-        }
-    };
-    Sound.prototype.pause = function () {
-        if (this._playing) {
-            this._playedTime = (this._playedTime + this._cxt.currentTime - this._startedTime) % this._duration;
-            this._playing = false;
-            this._sourceNode.stop(0);
-            this._clearTimer();
-        }
-    };
-    Sound.prototype._clearTimer = function () {
-        clearTimeout(this._endTimer);
-        this._endTimer = undefined;
     };
     Sound.prototype._endThen = function () {
         this._playing = false;
@@ -258,31 +428,8 @@ var Sound = /** @class */ (function () {
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(Sound.prototype, "volume", {
-        get: function () {
-            return this._volume;
-        },
-        set: function (value) {
-            this._volume = value;
-            if (this._gainNode) {
-                this._gainNode.gain.value = value;
-            }
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Sound.prototype, "pitch", {
-        get: function () {
-            return this._pitch;
-        },
-        set: function (value) {
-            this._pitch = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
     return Sound;
-}());
+}(container_1.default));
 exports["default"] = Sound;
 
 

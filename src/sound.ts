@@ -3,66 +3,43 @@ interface IOptions {
     loop: boolean;
 }
 
-import SoundMaster from './master';
+import Container from './container';
 
 //メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
 
-export default class Sound {
+export default class Sound extends Container{
     private _buffer: AudioBuffer;
-    private _cxt: AudioContext | undefined;
     private _sourceNode: AudioBufferSourceNode | undefined;
-    private _gainNode: GainNode | undefined;
-    private _playing: boolean = false;
-    private _endTimer: NodeJS.Timeout | undefined;
     private _duration: number = 0;
-    private _startedTime: number = 0;
     private _playedTime: number = 0;
+    private _startedTime: number = 0;
     private _loop: boolean = false;
-    private _volume: number = 1;
-    private _pitch: number = 1;
-    private _delayNode: DelayNode | undefined;
-    parent: SoundMaster | undefined;
+    private _playing: boolean = false;
 
     constructor(buf: AudioBuffer, options?: IOptions){
+        super();
         this._buffer = buf;
+        
         this._duration = buf.duration;
 
-
+        /*
         this.loop = options?.loop || false;
-        this.volume = options?.volume || 1;
+        this.volume = options?.volume || 1;*/
     }
 
     set buffer(buffer: AudioBuffer){
         this._buffer = buffer;
         this._duration = buffer.duration;
     }
-    acquireContext(cxt: AudioContext): void{
-        this._cxt = cxt;
-
-        this._gainNode = cxt.createGain();
-        this._gainNode.connect(cxt.destination);
-
-        const wetDelayNode = cxt.createGain();
-        wetDelayNode.connect(this._gainNode);
-        
-        const feedback = cxt.createGain();
-        feedback.gain.value = 0.7;
-        const delayNode = cxt.createDelay(3);
-        delayNode.delayTime.value = 0.1;
-        feedback.connect(delayNode);
-        delayNode.connect(feedback);
-        delayNode.connect(wetDelayNode);
-        this._delayNode = delayNode;
+    reStartFunc: Function = () => {
+        this._play(this._playedTime);
     }
-    reStart(): void{
-        this.play(this._playedTime);
-    }
-    start(): void{
+    startFunc: Function = () => {
         this._playedTime = 0;
-        this.play(0);
+        this._play(0);
     }
-    play(offset: number = 0): void{
-        if(!this._cxt || !this._buffer || !this._gainNode){
+    private _play(offset: number = 0){
+        if(!this._buffer){
             return;
         }
 
@@ -79,7 +56,6 @@ export default class Sound {
 
         sourceNode.connect(this._gainNode);
 
-        if(this._delayNode) sourceNode.connect(this._delayNode);
 
         sourceNode.start(0, offset);
 
@@ -90,29 +66,24 @@ export default class Sound {
         this._startedTime = cxt.currentTime;
 
         this._playing = true;
+        
         if(!this.loop) {
-            if(this._endTimer) this._clearTimer(); 
-           this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000/this._pitch);
+           this._sourceNode.onended = ()=>{this._endThen()};
         }
     }
-    stop(): void{
+    stopFunc: Function = () =>{
         if(this._playing && this._sourceNode){
             this._sourceNode.stop(0);
             this._sourceNode.disconnect(0);
             this._endThen();
         }
     }
-    pause(): void{
+    pauseFunc: Function = () =>{
         if(this._playing) {
             this._playedTime = (this._playedTime + this._cxt!.currentTime - this._startedTime) % this._duration;
             this._playing = false;
             this._sourceNode!.stop(0);
-            this._clearTimer();
         }
-    }
-    private _clearTimer(): void{
-        clearTimeout(this._endTimer!);
-        this._endTimer = undefined;
     }
     private _endThen(): void{
         this._playing = false;
@@ -130,21 +101,6 @@ export default class Sound {
     }
     get loop(): boolean{
         return this._loop;
-    }
-    set volume(value: number){
-        this._volume = value;
-        if(this._gainNode){
-            this._gainNode.gain.value = value;
-        }
-    }
-    get volume(): number{
-        return this._volume;
-    }
-    set pitch(value: number) {
-        this._pitch = value;
-    }
-    get pitch(): number{
-        return this._pitch;
     }
 }
 
