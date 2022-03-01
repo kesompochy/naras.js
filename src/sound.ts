@@ -20,6 +20,7 @@ export default class Sound {
     private _loop: boolean = false;
     private _volume: number = 1;
     private _pitch: number = 1;
+    private _delayNode: DelayNode | undefined;
     parent: SoundMaster | undefined;
 
     constructor(buf: AudioBuffer, options?: IOptions){
@@ -40,6 +41,18 @@ export default class Sound {
 
         this._gainNode = cxt.createGain();
         this._gainNode.connect(cxt.destination);
+
+        const wetDelayNode = cxt.createGain();
+        wetDelayNode.connect(this._gainNode);
+        
+        const feedback = cxt.createGain();
+        feedback.gain.value = 0.7;
+        const delayNode = cxt.createDelay(3);
+        delayNode.delayTime.value = 0.1;
+        feedback.connect(delayNode);
+        delayNode.connect(feedback);
+        delayNode.connect(wetDelayNode);
+        this._delayNode = delayNode;
     }
     reStart(): void{
         this.play(this._playedTime);
@@ -65,6 +78,9 @@ export default class Sound {
         const sourceNode = this._sourceNode;
 
         sourceNode.connect(this._gainNode);
+
+        if(this._delayNode) sourceNode.connect(this._delayNode);
+
         sourceNode.start(0, offset);
 
         

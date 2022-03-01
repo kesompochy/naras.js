@@ -171,6 +171,16 @@ var Sound = /** @class */ (function () {
         this._cxt = cxt;
         this._gainNode = cxt.createGain();
         this._gainNode.connect(cxt.destination);
+        var wetDelayNode = cxt.createGain();
+        wetDelayNode.connect(this._gainNode);
+        var feedback = cxt.createGain();
+        feedback.gain.value = 0.7;
+        var delayNode = cxt.createDelay(3);
+        delayNode.delayTime.value = 0.1;
+        feedback.connect(delayNode);
+        delayNode.connect(feedback);
+        delayNode.connect(wetDelayNode);
+        this._delayNode = delayNode;
     };
     Sound.prototype.reStart = function () {
         this.play(this._playedTime);
@@ -192,6 +202,8 @@ var Sound = /** @class */ (function () {
         this._gainNode.gain.value = this._volume;
         var sourceNode = this._sourceNode;
         sourceNode.connect(this._gainNode);
+        if (this._delayNode)
+            sourceNode.connect(this._delayNode);
         sourceNode.start(0, offset);
         this._sourceNode = sourceNode;
         this._startedTime = cxt.currentTime;
