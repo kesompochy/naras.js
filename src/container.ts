@@ -1,7 +1,7 @@
 import Master from './master';
 
 abstract class AbstractSounder {
-    protected abstract startFunc: Function;
+    protected abstract playFunc: Function;
     protected abstract stopFunc: Function;
     protected abstract pauseFunc: Function;
     protected abstract restartFunc: Function;
@@ -48,6 +48,7 @@ export default class Container extends AbstractSounder{
     private _delaySwitch: AudioNode = Master.cxt.createGain();
     private _delay: IDelayParams = defaultDelayParams;
     readonly children: Container[] = [];
+    protected actionFuncs: {play: CallableFunction, stop: CallableFunction, restart: CallableFunction, pause: CallableFunction};
     parent: Container | undefined;
     
     constructor(options?: IOptions | undefined){
@@ -70,6 +71,8 @@ export default class Container extends AbstractSounder{
         }
 
         this._inputNode.connect(this._delayNode);
+
+        this.actionFuncs = {play: this.playFunc, restart: this.restartFunc, stop: this.stopFunc, pause: this.pauseFunc};
     }
     protected useDelay(){
         this._delaySwitch.connect(this._gainNode);
@@ -86,17 +89,15 @@ export default class Container extends AbstractSounder{
     private _makeAllChildrenDo(funcName: string){
         const children = this.children;
         for(let i=0, len=children.length;i<len;i++){
-            children[i][funcName + funcSuffix]();
+            children[i].actionFuncs[funcName]();
         }
     }
-    start(){
-        this.startFunc();
-
-        this._makeAllChildrenDo('start');
+    play(){
+        this.playFunc();
+        this._makeAllChildrenDo('play');
     }
     stop(){
         this.stopFunc();
-
         this._makeAllChildrenDo('stop');
     }
     pause(){
@@ -107,7 +108,7 @@ export default class Container extends AbstractSounder{
         this.restartFunc();
         this._makeAllChildrenDo('restart');
     }
-    startFunc: Function = ()=>{};
+    playFunc: Function = ()=>{};
     stopFunc: Function = ()=>{};
     pauseFunc: Function = ()=>{};
     restartFunc: Function = ()=>{};

@@ -121,7 +121,7 @@ var Container = /** @class */ (function (_super) {
         _this._delaySwitch = master_1.default.cxt.createGain();
         _this._delay = exports.defaultDelayParams;
         _this.children = [];
-        _this.startFunc = function () { };
+        _this.playFunc = function () { };
         _this.stopFunc = function () { };
         _this.pauseFunc = function () { };
         _this.restartFunc = function () { };
@@ -139,6 +139,7 @@ var Container = /** @class */ (function (_super) {
             _this.delay = options.delay;
         }
         _this._inputNode.connect(_this._delayNode);
+        _this.actionFuncs = { play: _this.playFunc, restart: _this.restartFunc, stop: _this.stopFunc, pause: _this.pauseFunc };
         return _this;
     }
     Container.prototype.useDelay = function () {
@@ -155,12 +156,12 @@ var Container = /** @class */ (function (_super) {
     Container.prototype._makeAllChildrenDo = function (funcName) {
         var children = this.children;
         for (var i = 0, len = children.length; i < len; i++) {
-            children[i][funcName + funcSuffix]();
+            children[i].actionFuncs[funcName]();
         }
     };
-    Container.prototype.start = function () {
-        this.startFunc();
-        this._makeAllChildrenDo('start');
+    Container.prototype.play = function () {
+        this.playFunc();
+        this._makeAllChildrenDo('play');
     };
     Container.prototype.stop = function () {
         this.stopFunc();
@@ -383,7 +384,7 @@ var Sound = /** @class */ (function (_super) {
         _this.reStartFunc = function () {
             _this._play(_this._playedTime);
         };
-        _this.startFunc = function () {
+        _this.playFunc = function () {
             _this._playedTime = 0;
             _this._play(0);
         };
@@ -406,6 +407,7 @@ var Sound = /** @class */ (function (_super) {
         if (!options)
             options = defaultSoundOptions;
         _this.loop = options.loop || defaultSoundOptions.loop;
+        _this.actionFuncs = { play: _this.playFunc, restart: _this.restartFunc, stop: _this.stopFunc, pause: _this.pauseFunc };
         return _this;
     }
     Object.defineProperty(Sound.prototype, "buffer", {
