@@ -127,9 +127,9 @@ export default class Container extends AbstractSounder{
     }
     get worldPitch(): number{
         if(this.parent){
-            return this.parent._pitch*this.pitch;
+            return this.parent.worldPitch*this.parent.pitch;
         } else {
-            return this.pitch;
+            return 1;
         }
     }
     set delay(options: IDelayParams){

@@ -198,10 +198,10 @@ var Container = /** @class */ (function (_super) {
     Object.defineProperty(Container.prototype, "worldPitch", {
         get: function () {
             if (this.parent) {
-                return this.parent._pitch * this.pitch;
+                return this.parent.worldPitch * this.parent.pitch;
             }
             else {
-                return this.pitch;
+                return 1;
             }
         },
         enumerable: false,
@@ -425,7 +425,8 @@ var Sound = /** @class */ (function (_super) {
         this._sourceNode = cxt.createBufferSource();
         this._sourceNode.buffer = this._buffer;
         this._sourceNode.loop = this._loop;
-        this._sourceNode.playbackRate.value = this._pitch;
+        var realPitch = this.worldPitch * this._pitch;
+        this._sourceNode.playbackRate.value = realPitch;
         var sourceNode = this._sourceNode;
         sourceNode.connect(this._inputNode);
         sourceNode.start(0, offset);
@@ -433,7 +434,7 @@ var Sound = /** @class */ (function (_super) {
         this._startedTime = cxt.currentTime;
         this._playing = true;
         if (!this.loop) {
-            var endTime = this._duration * 1000 / this._pitch;
+            var endTime = this._duration * 1000 / realPitch;
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
             if (this._endTimer) {
                 clearTimeout(this._endTimer);

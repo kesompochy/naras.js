@@ -48,7 +48,8 @@ export default class Sound extends Container{
         this._sourceNode.buffer = this._buffer;
 
         this._sourceNode.loop = this._loop;
-        this._sourceNode.playbackRate.value = this._pitch;
+        const realPitch = this.worldPitch * this._pitch;
+        this._sourceNode.playbackRate.value = realPitch;
         
 
         const sourceNode = this._sourceNode;
@@ -66,7 +67,7 @@ export default class Sound extends Container{
         this._playing = true;
         
         if(!this.loop) {
-            const endTime = this._duration*1000/this._pitch;
+            const endTime = this._duration*1000/realPitch;
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
 
             if(this._endTimer) {
