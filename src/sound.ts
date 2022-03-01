@@ -26,6 +26,7 @@ export default class Sound {
         this._buffer = buf;
         this._duration = buf.duration;
 
+
         this.loop = options?.loop || false;
         this.volume = options?.volume || 1;
     }
@@ -37,9 +38,8 @@ export default class Sound {
     acquireContext(cxt: AudioContext): void{
         this._cxt = cxt;
 
-
         this._gainNode = cxt.createGain();
-        this._gainNode.connect(this._cxt.destination);
+        this._gainNode.connect(cxt.destination);
     }
     reStart(): void{
         this.play(this._playedTime);
