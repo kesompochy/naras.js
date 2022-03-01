@@ -170,7 +170,7 @@ var Sound = /** @class */ (function () {
     Sound.prototype.acquireContext = function (cxt) {
         this._cxt = cxt;
         this._gainNode = cxt.createGain();
-        this._gainNode.connect(this._cxt.destination);
+        this._gainNode.connect(cxt.destination);
     };
     Sound.prototype.reStart = function () {
         this.play(this._playedTime);
