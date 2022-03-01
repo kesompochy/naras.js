@@ -382,7 +382,6 @@ var Sound = /** @class */ (function (_super) {
         configurable: true
     });
     Sound.prototype._play = function (offset) {
-        var _this = this;
         if (offset === void 0) { offset = 0; }
         if (!this._buffer) {
             return;
@@ -400,13 +399,22 @@ var Sound = /** @class */ (function (_super) {
         this._startedTime = cxt.currentTime;
         this._playing = true;
         if (!this.loop) {
-            this._sourceNode.onended = function () { _this._endThen(); };
+            var endTime = this._duration * 1000 / this._pitch;
+            setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
+            if (this._endTimer) {
+                clearTimeout(this._endTimer);
+                this._endTimer = undefined;
+            }
+            this._endTimer = setTimeout(this._endThen.bind(this), endTime);
         }
+    };
+    Sound.prototype._disconnectSourceNode = function (sourceNode) {
+        sourceNode.disconnect(0);
     };
     Sound.prototype._endThen = function () {
         this._playing = false;
         this._playedTime = 0;
-        this._sourceNode.disconnect(0);
+        this._endTimer = undefined;
     };
     Object.defineProperty(Sound.prototype, "playing", {
         get: function () {

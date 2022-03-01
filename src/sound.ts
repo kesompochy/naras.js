@@ -15,6 +15,7 @@ export default class Sound extends Container{
     private _startedTime: number = 0;
     private _loop: boolean = false;
     private _playing: boolean = false;
+    private _endTimer: NodeJS.Timeout | undefined;
 
     constructor(buf: AudioBuffer, options?: IOptions){
         super();
@@ -68,10 +69,16 @@ export default class Sound extends Container{
         this._playing = true;
         
         if(!this.loop) {
-           this._sourceNode.onended = ()=>{this._endThen()};
+            const endTime = this._duration*1000/this._pitch;
+            setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
+
+            if(this._endTimer) {
+                clearTimeout(this._endTimer);
+                this._endTimer = undefined;
+            }
+            this._endTimer = setTimeout(this._endThen.bind(this), endTime);
         }
     }
-
 
     stopFunc: Function = () =>{
         if(this._playing && this._sourceNode){
@@ -87,10 +94,13 @@ export default class Sound extends Container{
             this._sourceNode!.stop(0);
         }
     }
+    private _disconnectSourceNode(sourceNode: AudioNode): void{
+        sourceNode!.disconnect(0);
+    }
     private _endThen(): void{
         this._playing = false;
         this._playedTime = 0;
-        this._sourceNode!.disconnect(0);
+        this._endTimer = undefined;
     }
     get playing(): boolean{
         return this._playing;
