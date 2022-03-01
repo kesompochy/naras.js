@@ -5,6 +5,8 @@ interface IOptions {
 
 import SoundMaster from './master';
 
+//メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
+
 export default class Sound {
     private _buffer: AudioBuffer;
     private _cxt: AudioContext | undefined;
@@ -17,6 +19,7 @@ export default class Sound {
     private _playedTime: number = 0;
     private _loop: boolean = false;
     private _volume: number = 1;
+    private _pitch: number = 1;
     parent: SoundMaster | undefined;
 
     constructor(buf: AudioBuffer, options?: IOptions){
@@ -33,8 +36,10 @@ export default class Sound {
     }
     acquireContext(cxt: AudioContext): void{
         this._cxt = cxt;
+
+
         this._gainNode = cxt.createGain();
-        this._gainNode.connect(cxt.destination);
+        this._gainNode.connect(this._cxt.destination);
     }
     reStart(): void{
         this.play(this._playedTime);
@@ -47,7 +52,6 @@ export default class Sound {
         if(!this._cxt || !this._buffer || !this._gainNode){
             return;
         }
- 
 
         const cxt = this._cxt;
 
@@ -55,12 +59,14 @@ export default class Sound {
         this._sourceNode.buffer = this._buffer;
 
         this._sourceNode.loop = this._loop;
+        this._sourceNode.playbackRate.value = this._pitch;
         this._gainNode.gain.value = this._volume;
 
         const sourceNode = this._sourceNode;
 
         sourceNode.connect(this._gainNode);
         sourceNode.start(0, offset);
+
         
 
         this._sourceNode = sourceNode;
@@ -70,7 +76,7 @@ export default class Sound {
         this._playing = true;
         if(!this.loop) {
             if(this._endTimer) this._clearTimer(); 
-           this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
+           this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000/this._pitch);
         }
     }
     stop(): void{
@@ -117,6 +123,12 @@ export default class Sound {
     }
     get volume(): number{
         return this._volume;
+    }
+    set pitch(value: number) {
+        this._pitch = value;
+    }
+    get pitch(): number{
+        return this._pitch;
     }
 }
 

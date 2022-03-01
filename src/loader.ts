@@ -20,8 +20,6 @@ export default class Loader{
         this._loadThen = func;
     }
     private _promiseLoadingSound(id: string, src: string): Promise<any>{
-
-
         const promise = new Promise((resolve)=>{
             fetch(src).then((res)=>{
                 return res.arrayBuffer();

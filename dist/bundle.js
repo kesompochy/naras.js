@@ -144,6 +144,7 @@ exports["default"] = SoundMaster;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+//メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
 var Sound = /** @class */ (function () {
     function Sound(buf, options) {
         this._playing = false;
@@ -152,6 +153,7 @@ var Sound = /** @class */ (function () {
         this._playedTime = 0;
         this._loop = false;
         this._volume = 1;
+        this._pitch = 1;
         this._buffer = buf;
         this._duration = buf.duration;
         this.loop = (options === null || options === void 0 ? void 0 : options.loop) || false;
@@ -168,7 +170,7 @@ var Sound = /** @class */ (function () {
     Sound.prototype.acquireContext = function (cxt) {
         this._cxt = cxt;
         this._gainNode = cxt.createGain();
-        this._gainNode.connect(cxt.destination);
+        this._gainNode.connect(this._cxt.destination);
     };
     Sound.prototype.reStart = function () {
         this.play(this._playedTime);
@@ -186,6 +188,7 @@ var Sound = /** @class */ (function () {
         this._sourceNode = cxt.createBufferSource();
         this._sourceNode.buffer = this._buffer;
         this._sourceNode.loop = this._loop;
+        this._sourceNode.playbackRate.value = this._pitch;
         this._gainNode.gain.value = this._volume;
         var sourceNode = this._sourceNode;
         sourceNode.connect(this._gainNode);
@@ -194,7 +197,9 @@ var Sound = /** @class */ (function () {
         this._startedTime = cxt.currentTime;
         this._playing = true;
         if (!this.loop) {
-            // this._endTimer = setTimeout(this._endThen.bind(this), this._duration*1000);
+            if (this._endTimer)
+                this._clearTimer();
+            this._endTimer = setTimeout(this._endThen.bind(this), this._duration * 1000 / this._pitch);
         }
     };
     Sound.prototype.stop = function () {
@@ -250,6 +255,16 @@ var Sound = /** @class */ (function () {
             if (this._gainNode) {
                 this._gainNode.gain.value = value;
             }
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Sound.prototype, "pitch", {
+        get: function () {
+            return this._pitch;
+        },
+        set: function (value) {
+            this._pitch = value;
         },
         enumerable: false,
         configurable: true
