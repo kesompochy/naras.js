@@ -1,12 +1,23 @@
 function main(){
-    const master = new NARAS.SoundMaster();
-    master.addResource('arigato', './sounds/arigato.wav');
-    master.loadAll();
+
+    const app = new NARAS.App();
+    app.addResource('arigato', './sounds/arigato.wav');
+    app.loadAll();
     
 
 
     const setup = () => {
+        const sound = new NARAS.Sound(app.loader.getResource('arigato'));
+        app.masterContainer.addChild(sound);
+        
+        
 
+        const play = () => {
+            sound.start();
+        }
+
+        document.addEventListener('click', play);
+/*
         const sound = new NARAS.Sound(master.loader.get('arigato'), {volume: 1, loop: false});
         master.addChild(sound);
 
@@ -43,11 +54,11 @@ function main(){
         slider.addEventListener('input', changeVolume);
         onceButton.addEventListener('click', playOnce);
         loopButton.addEventListener('click', playLoop);
-
+*/
 
 
     }
-    master.loader.loadThen(setup);
+    app.loadThen(setup);
 }
 
 window.onload = main;
