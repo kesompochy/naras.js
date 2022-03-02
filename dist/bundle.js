@@ -12,10 +12,10 @@ return /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ "./src/application.ts":
-/*!****************************!*\
-  !*** ./src/application.ts ***!
-  \****************************/
+/***/ "./src/app/application.ts":
+/*!********************************!*\
+  !*** ./src/app/application.ts ***!
+  \********************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -23,13 +23,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-var loader_1 = __importDefault(__webpack_require__(/*! ./loader */ "./src/loader.ts"));
-var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
-var container_1 = __webpack_require__(/*! ./container */ "./src/container.ts");
+var loader_1 = __importDefault(__webpack_require__(/*! ../loader/loader */ "./src/loader/loader.ts"));
+var narasmaster_1 = __importDefault(__webpack_require__(/*! ./narasmaster */ "./src/app/narasmaster.ts"));
+var mixer_1 = __webpack_require__(Object(function webpackMissingModule() { var e = new Error("Cannot find module '../mixer/mixer'"); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 var App = /** @class */ (function () {
     function App() {
         this.loader = new loader_1.default();
-        this.masterContainer = new container_1.MasterContainer();
+        this.master = new mixer_1.MasterMixer();
         this._unlockEvents = ['click', 'scroll', 'touchstart'];
         for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
             document.addEventListener(this._unlockEvents[i], this._initContext.bind(this), { once: true });
@@ -37,8 +37,8 @@ var App = /** @class */ (function () {
         this._initContext();
     }
     App.prototype._initContext = function () {
-        if (master_1.default.cxt.state === 'suspended') {
-            master_1.default.cxt.resume();
+        if (narasmaster_1.default.cxt.state === 'suspended') {
+            narasmaster_1.default.cxt.resume();
         }
         for (var i = 0, len = this._unlockEvents.length; i < len; i++) {
             document.removeEventListener(this._unlockEvents[i], this._initContext.bind(this));
@@ -61,207 +61,30 @@ exports["default"] = App;
 
 /***/ }),
 
-/***/ "./src/container.ts":
-/*!**************************!*\
-  !*** ./src/container.ts ***!
-  \**************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ "./src/app/narasmaster.ts":
+/*!********************************!*\
+  !*** ./src/app/narasmaster.ts ***!
+  \********************************/
+/***/ ((__unused_webpack_module, exports) => {
 
 
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MasterContainer = exports.defaultOptions = void 0;
-var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
-var delay_1 = __importDefault(__webpack_require__(/*! ./delay */ "./src/delay.ts"));
-var pan_1 = __importDefault(__webpack_require__(/*! ./pan */ "./src/pan.ts"));
-var AbstractSounder = /** @class */ (function () {
-    function AbstractSounder() {
+var AudioContext = window.AudioContext || window.webkitAudioContext;
+var Master = /** @class */ (function () {
+    function Master() {
     }
-    return AbstractSounder;
+    Master.cxt = new AudioContext();
+    return Master;
 }());
-var delay_2 = __webpack_require__(/*! ./delay */ "./src/delay.ts");
-exports.defaultOptions = {
-    volume: 1,
-    loop: false,
-    pitch: 1,
-    delay: delay_2.defaultDelayParams,
-    useDelay: false
-};
-var ActionFuncsName;
-(function (ActionFuncsName) {
-    ActionFuncsName["play"] = "play";
-    ActionFuncsName["stop"] = "stop";
-    ActionFuncsName["restart"] = "restart";
-    ActionFuncsName["pause"] = "pause";
-})(ActionFuncsName || (ActionFuncsName = {}));
-;
-var Container = /** @class */ (function (_super) {
-    __extends(Container, _super);
-    function Container(options) {
-        var _this = _super.call(this) || this;
-        //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
-        _this._cxt = master_1.default.cxt;
-        _this._inputNode = master_1.default.cxt.createGain();
-        _this._outputNode = master_1.default.cxt.createGain();
-        _this._gainNode = master_1.default.cxt.createGain();
-        _this._volume = exports.defaultOptions.volume;
-        _this._pitch = exports.defaultOptions.pitch;
-        _this.children = [];
-        _this.actionFuncs = { play: _this.playFunc, stop: _this.stopFunc, restart: _this.restartFunc, pause: _this.pauseFunc };
-        _this.playFunc = function () { };
-        _this.stopFunc = function () { };
-        _this.pauseFunc = function () { };
-        _this.restartFunc = function () { };
-        if (!options)
-            options = exports.defaultOptions;
-        _this.volume = options.volume || exports.defaultOptions.volume;
-        _this.pitch = options.pitch || exports.defaultOptions.pitch;
-        _this._delaying = options.useDelay || exports.defaultOptions.useDelay;
-        _this._panner = new pan_1.default(0, 0, 0);
-        _this._delay = new delay_1.default(_this._inputNode, options.delay || exports.defaultOptions.delay);
-        _this._inputNode.connect(_this._panner.node);
-        _this._panner.connect(_this._gainNode);
-        _this._gainNode.connect(_this._outputNode);
-        if (options.useDelay) {
-            _this.useDelay();
-        }
-        return _this;
-    }
-    Container.prototype.useDelay = function () {
-        this._delaying = true;
-        this._delay.connect(this._gainNode);
-    };
-    Container.prototype.unuseDelay = function () {
-        this._delaying = false;
-        this._delay.disconnect();
-    };
-    Object.defineProperty(Container.prototype, "delay", {
-        get: function () {
-            return this._delay;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "delaying", {
-        get: function () {
-            return this._delaying;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Container.prototype.addChildren = function () {
-        var ary = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            ary[_i] = arguments[_i];
-        }
-        for (var i = 0, len = ary.length; i < len; i++) {
-            this.addChild(ary[i]);
-        }
-    };
-    Container.prototype.addChild = function (obj) {
-        this.children.push(obj);
-        obj.connect(this._inputNode);
-        obj.parent = this;
-    };
-    Container.prototype.connect = function (output) {
-        this._outputNode.connect(output);
-    };
-    Container.prototype._makeAllChildrenDo = function (funcName) {
-        var children = this.children;
-        for (var i = 0, len = children.length; i < len; i++) {
-            children[i].actionFuncs[funcName]();
-        }
-    };
-    Container.prototype.play = function () {
-        this.playFunc();
-        this._makeAllChildrenDo(ActionFuncsName.play);
-    };
-    Container.prototype.stop = function () {
-        this.stopFunc();
-        this._makeAllChildrenDo(ActionFuncsName.stop);
-    };
-    Container.prototype.pause = function () {
-        this.pauseFunc();
-        this._makeAllChildrenDo(ActionFuncsName.pause);
-    };
-    Container.prototype.restart = function () {
-        this.restartFunc();
-        this._makeAllChildrenDo(ActionFuncsName.restart);
-    };
-    Object.defineProperty(Container.prototype, "volume", {
-        get: function () {
-            return this._volume;
-        },
-        set: function (value) {
-            this._volume = value;
-            this._gainNode.gain.value = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "pitch", {
-        get: function () {
-            return this._pitch;
-        },
-        set: function (value) {
-            this._pitch = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Container.prototype.calcWorldPitch = function () {
-        if (this.parent) {
-            return this.parent.calcWorldPitch() * this.parent.pitch;
-        }
-        else {
-            return 1;
-        }
-    };
-    Object.defineProperty(Container.prototype, "panner", {
-        get: function () {
-            return this._panner;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    return Container;
-}(AbstractSounder));
-exports["default"] = Container;
-var MasterContainer = /** @class */ (function (_super) {
-    __extends(MasterContainer, _super);
-    function MasterContainer() {
-        var _this = _super.call(this) || this;
-        _this.connect(master_1.default.cxt.destination);
-        return _this;
-    }
-    return MasterContainer;
-}(Container));
-exports.MasterContainer = MasterContainer;
+exports["default"] = Master;
 
 
 /***/ }),
 
-/***/ "./src/delay.ts":
-/*!**********************!*\
-  !*** ./src/delay.ts ***!
-  \**********************/
+/***/ "./src/container/effects/delay.ts":
+/*!****************************************!*\
+  !*** ./src/container/effects/delay.ts ***!
+  \****************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -270,7 +93,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.defaultDelayParams = void 0;
-var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var narasmaster_1 = __importDefault(__webpack_require__(/*! ../../app/narasmaster */ "./src/app/narasmaster.ts"));
 var defaultDelayParams = {
     interval: 1,
     attenuation: 0.5,
@@ -281,9 +104,9 @@ var Delay = /** @class */ (function () {
     function Delay(input, params) {
         this._interval = defaultDelayParams.interval;
         this._attenuation = defaultDelayParams.attenuation;
-        this._delayNode = master_1.default.cxt.createDelay(MAX_DELAY_TIME);
-        this._attenuationNode = master_1.default.cxt.createGain();
-        this._delaySwitch = master_1.default.cxt.createGain();
+        this._delayNode = narasmaster_1.default.cxt.createDelay(MAX_DELAY_TIME);
+        this._attenuationNode = narasmaster_1.default.cxt.createGain();
+        this._delaySwitch = narasmaster_1.default.cxt.createGain();
         if (!params) {
             params = defaultDelayParams;
         }
@@ -338,10 +161,10 @@ exports["default"] = Delay;
 
 /***/ }),
 
-/***/ "./src/index.ts":
-/*!**********************!*\
-  !*** ./src/index.ts ***!
-  \**********************/
+/***/ "./src/container/effects/pan.ts":
+/*!**************************************!*\
+  !*** ./src/container/effects/pan.ts ***!
+  \**************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -349,112 +172,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Container = exports.App = exports.SoundMaster = exports.Sound = void 0;
-var sound_1 = __importDefault(__webpack_require__(/*! ./sound */ "./src/sound.ts"));
-exports.Sound = sound_1.default;
-var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
-exports.SoundMaster = master_1.default;
-var application_1 = __importDefault(__webpack_require__(/*! ./application */ "./src/application.ts"));
-exports.App = application_1.default;
-var container_1 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
-exports.Container = container_1.default;
-
-
-/***/ }),
-
-/***/ "./src/loader.ts":
-/*!***********************!*\
-  !*** ./src/loader.ts ***!
-  \***********************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
-var Loader = /** @class */ (function () {
-    function Loader() {
-        this._resources = new Map();
-        this._datas = new Map();
-        this._tasks = [];
-        this._loadThen = function () { };
-        this._cxt = master_1.default.cxt;
-    }
-    Loader.prototype.add = function (id, src) {
-        var promise = this._promiseLoadingSound(id, src);
-        this._tasks.push(promise);
-        return this;
-    };
-    Loader.prototype.loadAll = function () {
-        var _this = this;
-        Promise.all(this._tasks)
-            .then(function () { _this._loadThen(); });
-    };
-    Loader.prototype.loadThen = function (func) {
-        this._loadThen = func;
-    };
-    Loader.prototype._promiseLoadingSound = function (id, src) {
-        var _this = this;
-        var promise = new Promise(function (resolve) {
-            fetch(src).then(function (res) {
-                return res.arrayBuffer();
-            }).then(function (data) {
-                _this._datas.set(id, data);
-                return _this._cxt.decodeAudioData(data);
-            }).then(function (buf) {
-                _this._resources.set(id, buf);
-                resolve(buf);
-            });
-        });
-        return promise;
-    };
-    Loader.prototype.getResource = function (id) {
-        return this._resources.get(id);
-    };
-    Loader.prototype.getData = function (id) {
-        return this._datas.get(id);
-    };
-    return Loader;
-}());
-exports["default"] = Loader;
-
-
-/***/ }),
-
-/***/ "./src/master.ts":
-/*!***********************!*\
-  !*** ./src/master.ts ***!
-  \***********************/
-/***/ ((__unused_webpack_module, exports) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-var AudioContext = window.AudioContext || window.webkitAudioContext;
-var Master = /** @class */ (function () {
-    function Master() {
-    }
-    Master.cxt = new AudioContext();
-    return Master;
-}());
-exports["default"] = Master;
-
-
-/***/ }),
-
-/***/ "./src/pan.ts":
-/*!********************!*\
-  !*** ./src/pan.ts ***!
-  \********************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var narasmaster_1 = __importDefault(__webpack_require__(/*! ../../app/narasmaster */ "./src/app/narasmaster.ts"));
 var defaultPannerPosition = {
     x: 0,
     y: 0,
@@ -462,7 +180,7 @@ var defaultPannerPosition = {
 };
 var Panner = /** @class */ (function () {
     function Panner(x, y, z) {
-        this._pannerNode = master_1.default.cxt.createPanner();
+        this._pannerNode = narasmaster_1.default.cxt.createPanner();
         this._position = defaultPannerPosition;
         if (x)
             this.x = x;
@@ -527,10 +245,10 @@ exports["default"] = Panner;
 
 /***/ }),
 
-/***/ "./src/sound.ts":
-/*!**********************!*\
-  !*** ./src/sound.ts ***!
-  \**********************/
+/***/ "./src/container/mixer.ts":
+/*!********************************!*\
+  !*** ./src/container/mixer.ts ***!
+  \********************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -553,9 +271,206 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-var container_1 = __webpack_require__(/*! ./container */ "./src/container.ts");
-var defaultSoundOptions = Object.assign(container_1.defaultOptions, { loop: false });
-var container_2 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
+exports.MasterMixer = exports.defaultOptions = void 0;
+var narasmaster_1 = __importDefault(__webpack_require__(/*! ../app/narasmaster */ "./src/app/narasmaster.ts"));
+var delay_1 = __importDefault(__webpack_require__(/*! ./effects/delay */ "./src/container/effects/delay.ts"));
+var pan_1 = __importDefault(__webpack_require__(/*! ./effects/pan */ "./src/container/effects/pan.ts"));
+var AbstractMixer = /** @class */ (function () {
+    function AbstractMixer() {
+    }
+    return AbstractMixer;
+}());
+var delay_2 = __webpack_require__(/*! ./effects/delay */ "./src/container/effects/delay.ts");
+exports.defaultOptions = {
+    volume: 1,
+    loop: false,
+    pitch: 1,
+    delay: delay_2.defaultDelayParams,
+    useDelay: false
+};
+var ActionFuncsName;
+(function (ActionFuncsName) {
+    ActionFuncsName["play"] = "play";
+    ActionFuncsName["stop"] = "stop";
+    ActionFuncsName["restart"] = "restart";
+    ActionFuncsName["pause"] = "pause";
+})(ActionFuncsName || (ActionFuncsName = {}));
+;
+var Mixer = /** @class */ (function (_super) {
+    __extends(Mixer, _super);
+    function Mixer(options) {
+        var _this = _super.call(this) || this;
+        //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
+        _this._cxt = narasmaster_1.default.cxt;
+        _this._inputNode = narasmaster_1.default.cxt.createGain();
+        _this._outputNode = narasmaster_1.default.cxt.createGain();
+        _this._gainNode = narasmaster_1.default.cxt.createGain();
+        _this._volume = exports.defaultOptions.volume;
+        _this._pitch = exports.defaultOptions.pitch;
+        _this.children = [];
+        _this.actionFuncs = { play: _this.playFunc, stop: _this.stopFunc, restart: _this.restartFunc, pause: _this.pauseFunc };
+        _this.playFunc = function () { };
+        _this.stopFunc = function () { };
+        _this.pauseFunc = function () { };
+        _this.restartFunc = function () { };
+        if (!options)
+            options = exports.defaultOptions;
+        _this.volume = options.volume || exports.defaultOptions.volume;
+        _this.pitch = options.pitch || exports.defaultOptions.pitch;
+        _this._delaying = options.useDelay || exports.defaultOptions.useDelay;
+        _this._panner = new pan_1.default(0, 0, 0);
+        _this._delay = new delay_1.default(_this._inputNode, options.delay || exports.defaultOptions.delay);
+        _this._inputNode.connect(_this._panner.node);
+        _this._panner.connect(_this._gainNode);
+        _this._gainNode.connect(_this._outputNode);
+        if (options.useDelay) {
+            _this.useDelay();
+        }
+        return _this;
+    }
+    Mixer.prototype.useDelay = function () {
+        this._delaying = true;
+        this._delay.connect(this._gainNode);
+    };
+    Mixer.prototype.unuseDelay = function () {
+        this._delaying = false;
+        this._delay.disconnect();
+    };
+    Object.defineProperty(Mixer.prototype, "delay", {
+        get: function () {
+            return this._delay;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Mixer.prototype, "delaying", {
+        get: function () {
+            return this._delaying;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Mixer.prototype.addChildren = function () {
+        var ary = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            ary[_i] = arguments[_i];
+        }
+        for (var i = 0, len = ary.length; i < len; i++) {
+            this.addChild(ary[i]);
+        }
+    };
+    Mixer.prototype.addChild = function (obj) {
+        this.children.push(obj);
+        obj.connect(this._inputNode);
+        obj.parent = this;
+    };
+    Mixer.prototype.connect = function (output) {
+        this._outputNode.connect(output);
+    };
+    Mixer.prototype._makeAllChildrenDo = function (funcName) {
+        var children = this.children;
+        for (var i = 0, len = children.length; i < len; i++) {
+            children[i].actionFuncs[funcName]();
+        }
+    };
+    Mixer.prototype.play = function () {
+        this.playFunc();
+        this._makeAllChildrenDo(ActionFuncsName.play);
+    };
+    Mixer.prototype.stop = function () {
+        this.stopFunc();
+        this._makeAllChildrenDo(ActionFuncsName.stop);
+    };
+    Mixer.prototype.pause = function () {
+        this.pauseFunc();
+        this._makeAllChildrenDo(ActionFuncsName.pause);
+    };
+    Mixer.prototype.restart = function () {
+        this.restartFunc();
+        this._makeAllChildrenDo(ActionFuncsName.restart);
+    };
+    Object.defineProperty(Mixer.prototype, "volume", {
+        get: function () {
+            return this._volume;
+        },
+        set: function (value) {
+            this._volume = value;
+            this._gainNode.gain.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Mixer.prototype, "pitch", {
+        get: function () {
+            return this._pitch;
+        },
+        set: function (value) {
+            this._pitch = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Mixer.prototype.calcWorldPitch = function () {
+        if (this.parent) {
+            return this.parent.calcWorldPitch() * this.parent.pitch;
+        }
+        else {
+            return 1;
+        }
+    };
+    Object.defineProperty(Mixer.prototype, "panner", {
+        get: function () {
+            return this._panner;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return Mixer;
+}(AbstractMixer));
+exports["default"] = Mixer;
+var MasterMixer = /** @class */ (function (_super) {
+    __extends(MasterMixer, _super);
+    function MasterMixer() {
+        var _this = _super.call(this) || this;
+        _this.connect(narasmaster_1.default.cxt.destination);
+        return _this;
+    }
+    return MasterMixer;
+}(Mixer));
+exports.MasterMixer = MasterMixer;
+
+
+/***/ }),
+
+/***/ "./src/container/sound.ts":
+/*!********************************!*\
+  !*** ./src/container/sound.ts ***!
+  \********************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var mixer_1 = __webpack_require__(/*! ./mixer */ "./src/container/mixer.ts");
+var defaultSoundOptions = Object.assign(mixer_1.defaultOptions, { loop: false });
+var mixer_2 = __importDefault(__webpack_require__(/*! ./mixer */ "./src/container/mixer.ts"));
 var Sound = /** @class */ (function (_super) {
     __extends(Sound, _super);
     function Sound(buf, options) {
@@ -658,8 +573,91 @@ var Sound = /** @class */ (function (_super) {
         configurable: true
     });
     return Sound;
-}(container_2.default));
+}(mixer_2.default));
 exports["default"] = Sound;
+
+
+/***/ }),
+
+/***/ "./src/index.ts":
+/*!**********************!*\
+  !*** ./src/index.ts ***!
+  \**********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Sound = exports.Mixer = exports.App = void 0;
+var sound_1 = __importDefault(__webpack_require__(/*! ./container/sound */ "./src/container/sound.ts"));
+exports.Sound = sound_1.default;
+var application_1 = __importDefault(__webpack_require__(/*! ./app/application */ "./src/app/application.ts"));
+exports.App = application_1.default;
+var mixer_1 = __importDefault(__webpack_require__(/*! ./container/mixer */ "./src/container/mixer.ts"));
+exports.Mixer = mixer_1.default;
+
+
+/***/ }),
+
+/***/ "./src/loader/loader.ts":
+/*!******************************!*\
+  !*** ./src/loader/loader.ts ***!
+  \******************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var narasmaster_1 = __importDefault(__webpack_require__(/*! ../app/narasmaster */ "./src/app/narasmaster.ts"));
+var Loader = /** @class */ (function () {
+    function Loader() {
+        this._resources = new Map();
+        this._datas = new Map();
+        this._tasks = [];
+        this._loadThen = function () { };
+        this._cxt = narasmaster_1.default.cxt;
+    }
+    Loader.prototype.add = function (id, src) {
+        var promise = this._promiseLoadingSound(id, src);
+        this._tasks.push(promise);
+        return this;
+    };
+    Loader.prototype.loadAll = function () {
+        var _this = this;
+        Promise.all(this._tasks)
+            .then(function () { _this._loadThen(); });
+    };
+    Loader.prototype.loadThen = function (func) {
+        this._loadThen = func;
+    };
+    Loader.prototype._promiseLoadingSound = function (id, src) {
+        var _this = this;
+        var promise = new Promise(function (resolve) {
+            fetch(src).then(function (res) {
+                return res.arrayBuffer();
+            }).then(function (data) {
+                _this._datas.set(id, data);
+                return _this._cxt.decodeAudioData(data);
+            }).then(function (buf) {
+                _this._resources.set(id, buf);
+                resolve(buf);
+            });
+        });
+        return promise;
+    };
+    Loader.prototype.getResource = function (id) {
+        return this._resources.get(id);
+    };
+    Loader.prototype.getData = function (id) {
+        return this._datas.get(id);
+    };
+    return Loader;
+}());
+exports["default"] = Loader;
 
 
 /***/ })
