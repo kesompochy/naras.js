@@ -13,20 +13,19 @@ function main(){
         const container = new NARAS.Container({pitch: 0.5});
         app.masterContainer.addChild(container);
         container.addChild(sound);
-        sound.useDelay();
 
         const play = () => {
             container.play();
-            //sound.useDelay();
-            sound.delay.interval = 1;
-            sound.delay.attenuation = 0.99;
-            //sound.useDelay();
+            sound.useDelay();
+            sound.delay = {
+                interval: 1,
+                attenuation: 0.99
+            }
             requestAnimationFrame(ticking);
         }
 
         const ticking = () => {
-            //sound.delay.interval -= 0.001;
-            //sound.delay.attenuation -= 0.001;
+            sound.delayInterval = 0.01;
             requestAnimationFrame(ticking);
         }
 
