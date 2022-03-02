@@ -1,10 +1,10 @@
 import Loader from '../loader/loader';
-import Master from './master';
-import {MasterContainer} from '../container/container';
+import Master from './narasmaster';
+import {MasterMixer} from '../mixer/mixer';
 
 export default class App {
     loader: Loader = new Loader();
-    masterContainer: MasterContainer = new MasterContainer();
+    master: MasterMixer = new MasterMixer();
     private _unlockEvents: string[] = ['click', 'scroll', 'touchstart'];
     constructor(){
         for(let i=0, len=this._unlockEvents.length;i<len;i++){

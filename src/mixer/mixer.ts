@@ -1,4 +1,4 @@
-import Master from '../app/master';
+import Master from '../app/narasmaster';
 
 import Delay from './effects/delay';
 import Panner from './effects/pan';
@@ -10,14 +10,13 @@ interface ActionFuncs{
     pause: CallableFunction;
 }
 
-abstract class AbstractSounder {
+abstract class AbstractMixer {
     protected abstract playFunc: Function;
     protected abstract stopFunc: Function;
     protected abstract pauseFunc: Function;
     protected abstract restartFunc: Function;
     protected abstract actionFuncs: ActionFuncs;
 }
-
 
 import { IDelayParams, defaultDelayParams } from './effects/delay';
 
@@ -28,8 +27,6 @@ export interface IOptions {
     delay?: IDelayParams;
     useDelay?: boolean;
 }
-
-
 
 
 export const defaultOptions: IOptions = {
@@ -54,7 +51,7 @@ enum ActionFuncsName {
 
 
 
-export default class Container extends AbstractSounder{
+export default class Mixer extends AbstractMixer{
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
     protected _cxt: AudioContext = Master.cxt;
     
@@ -70,9 +67,9 @@ export default class Container extends AbstractSounder{
     protected _pitch: number = defaultOptions.pitch!;
     private _delaying: boolean;
 
-    readonly children: Container[] = [];
+    readonly children: Mixer[] = [];
     protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
-    parent: Container | undefined;
+    parent: Mixer | undefined;
     
     constructor(options?: IOptions){
         super();
@@ -113,12 +110,12 @@ export default class Container extends AbstractSounder{
         return this._delaying;
     }
 
-    addChildren(...ary: Container[]){
+    addChildren(...ary: Mixer[]){
         for(let i=0, len=ary.length;i<len;i++){
             this.addChild(ary[i]);
         }
     }
-    addChild(obj: Container){
+    addChild(obj: Mixer){
         this.children.push(obj);
         obj.connect(this._inputNode);
         obj.parent = this;
@@ -180,7 +177,7 @@ export default class Container extends AbstractSounder{
     }
 }
 
-export class MasterContainer extends Container{
+export class MasterMixer extends Mixer{
     constructor(){
         super();
         this.connect(Master.cxt.destination);
