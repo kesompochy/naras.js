@@ -14,7 +14,7 @@ The main file is `naras.min.js` in `./dist/`.
 
     import * as NARAS from 'naras.js';
 
-    //The app creates an WebAudioAPI and a sound loader
+    //The app creates an WebAudioAPI Context and a sound loader
     const app = new NARAS.App();
 
     //register sound resources with ID
