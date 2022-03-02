@@ -100,8 +100,16 @@ exports.defaultOptions = {
     pitch: 1,
     delay: null
 };
+var ActionFuncsName;
+(function (ActionFuncsName) {
+    ActionFuncsName["play"] = "play";
+    ActionFuncsName["stop"] = "stop";
+    ActionFuncsName["restart"] = "restart";
+    ActionFuncsName["pause"] = "pause";
+})(ActionFuncsName || (ActionFuncsName = {}));
+;
 var defaultDelayParams = {
-    interval: 0.05,
+    interval: 1,
     attenuation: 0.5
 };
 var defaultPanningPosition = {
@@ -125,8 +133,8 @@ var Container = /** @class */ (function (_super) {
         _this._volume = 1;
         _this._pitch = 1;
         _this._delay = defaultDelayParams;
-        _this._panningPosition = defaultPanningPosition;
         _this.children = [];
+        _this.actionFuncs = { play: _this.playFunc, stop: _this.stopFunc, restart: _this.restartFunc, pause: _this.pauseFunc };
         _this.playFunc = function () { };
         _this.stopFunc = function () { };
         _this.pauseFunc = function () { };
@@ -146,7 +154,6 @@ var Container = /** @class */ (function (_super) {
             _this.delay = options.delay;
         }
         _this._inputNode.connect(_this._delayNode);
-        _this.actionFuncs = { play: _this.playFunc, restart: _this.restartFunc, stop: _this.stopFunc, pause: _this.pauseFunc };
         return _this;
     }
     Container.prototype.useDelay = function () {
@@ -168,19 +175,19 @@ var Container = /** @class */ (function (_super) {
     };
     Container.prototype.play = function () {
         this.playFunc();
-        this._makeAllChildrenDo('play');
+        this._makeAllChildrenDo(ActionFuncsName.play);
     };
     Container.prototype.stop = function () {
         this.stopFunc();
-        this._makeAllChildrenDo('stop');
+        this._makeAllChildrenDo(ActionFuncsName.stop);
     };
     Container.prototype.pause = function () {
         this.pauseFunc();
-        this._makeAllChildrenDo('pause');
+        this._makeAllChildrenDo(ActionFuncsName.pause);
     };
     Container.prototype.restart = function () {
         this.restartFunc();
-        this._makeAllChildrenDo('restart');
+        this._makeAllChildrenDo(ActionFuncsName.restart);
     };
     Object.defineProperty(Container.prototype, "volume", {
         get: function () {

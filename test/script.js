@@ -7,19 +7,26 @@ function main(){
 
 
     const setup = () => {
-        const sound = new NARAS.Sound(app.loader.getResource('arigato'), {delay: {interval: 0.1, attenuation: 0.5}});
+        const sound = new NARAS.Sound(app.loader.getResource('arigato'));
         //app.masterContainer.addChild(sound);
         
         const container = new NARAS.Container({pitch: 0.5});
         app.masterContainer.addChild(container);
         container.addChild(sound);
+        sound.useDelay();
 
         const play = () => {
             container.play();
+            //sound.useDelay();
+            sound.delay.interval = 1;
+            sound.delay.attenuation = 0.99;
+            //sound.useDelay();
             requestAnimationFrame(ticking);
         }
 
         const ticking = () => {
+            //sound.delay.interval -= 0.001;
+            //sound.delay.attenuation -= 0.001;
             requestAnimationFrame(ticking);
         }
 
