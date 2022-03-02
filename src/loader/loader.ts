@@ -1,4 +1,4 @@
-import Master from '../app/master';
+import Master from '../app/narasmaster';
 
 export default class Loader{
     private _resources: Map<string, AudioBuffer> = new Map();

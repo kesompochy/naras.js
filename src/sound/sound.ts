@@ -1,4 +1,4 @@
-import { IOptions, defaultOptions } from './container';
+import { IOptions, defaultOptions } from '../mixer/mixer';
 
 interface ISoundOptions extends IOptions{
     loop?: boolean;
@@ -6,7 +6,7 @@ interface ISoundOptions extends IOptions{
 
 const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
 
-import Container from './container';
+import Container from '../mixer/mixer';
 
 
 export default class Sound extends Container{

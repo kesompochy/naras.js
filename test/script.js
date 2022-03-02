@@ -7,8 +7,8 @@ function main(){
 
 
     const setup = () => {
-        const container = new NARAS.Container();
-        app.masterContainer.addChild(container);
+        const container = new NARAS.Mixer();
+        app.root.addChild(container);
 
         const sound = new NARAS.Sound(app.loader.getResource('arigato'));
         sound.loop = true;
