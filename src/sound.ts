@@ -19,6 +19,7 @@ export default class Sound extends Container{
     private _playing: boolean = false;
     private _endTimer: NodeJS.Timeout | undefined;
 
+    
     constructor(buf: AudioBuffer, options?: ISoundOptions){
         
         super(options);
@@ -30,6 +31,7 @@ export default class Sound extends Container{
         this.loop = options.loop || defaultSoundOptions.loop!;
 
         this.actionFuncs = {play: this.playFunc, restart: this.restartFunc, stop: this.stopFunc, pause: this.pauseFunc};
+
     }
 
 

@@ -1,10 +1,18 @@
 import Master from './master';
 
+interface ActionFuncs{
+    play: CallableFunction;
+    stop: CallableFunction;
+    restart: CallableFunction;
+    pause: CallableFunction;
+}
+
 abstract class AbstractSounder {
     protected abstract playFunc: Function;
     protected abstract stopFunc: Function;
     protected abstract pauseFunc: Function;
     protected abstract restartFunc: Function;
+    protected abstract actionFuncs: ActionFuncs;
 }
 
 
@@ -30,8 +38,15 @@ interface IDelayParams {
     attenuation: number;
 }
 
+enum ActionFuncsName {
+    play = 'play',
+    stop = 'stop',
+    restart = 'restart',
+    pause = 'pause'
+};
+
 const defaultDelayParams: IDelayParams = {
-    interval: 0.05,
+    interval: 1,
     attenuation: 0.5
 }
 
@@ -65,10 +80,9 @@ export default class Container extends AbstractSounder{
     private _volume: number = 1;
     protected _pitch: number = 1;
     private _delay: IDelayParams = defaultDelayParams;
-    private _panningPosition: PanningPosition = defaultPanningPosition;
 
     readonly children: Container[] = [];
-    protected actionFuncs: {play: CallableFunction, stop: CallableFunction, restart: CallableFunction, pause: CallableFunction};
+    protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
     parent: Container | undefined;
     
     constructor(options?: IOptions | undefined){
@@ -95,8 +109,6 @@ export default class Container extends AbstractSounder{
         }
 
         this._inputNode.connect(this._delayNode);
-
-        this.actionFuncs = {play: this.playFunc, restart: this.restartFunc, stop: this.stopFunc, pause: this.pauseFunc};
     }
     protected useDelay(){
         this._delaySwitch.connect(this._gainNode);
@@ -110,7 +122,7 @@ export default class Container extends AbstractSounder{
         obj.parent = this;
     }
 
-    private _makeAllChildrenDo(funcName: string){
+    private _makeAllChildrenDo(funcName: ActionFuncsName){
         const children = this.children;
         for(let i=0, len=children.length;i<len;i++){
             children[i].actionFuncs[funcName]();
@@ -118,19 +130,19 @@ export default class Container extends AbstractSounder{
     }
     play(){
         this.playFunc();
-        this._makeAllChildrenDo('play');
+        this._makeAllChildrenDo(ActionFuncsName.play);
     }
     stop(){
         this.stopFunc();
-        this._makeAllChildrenDo('stop');
+        this._makeAllChildrenDo(ActionFuncsName.stop);
     }
     pause(){
         this.pauseFunc();
-        this._makeAllChildrenDo('pause');
+        this._makeAllChildrenDo(ActionFuncsName.pause);
     }
     restart(){
         this.restartFunc();
-        this._makeAllChildrenDo('restart');
+        this._makeAllChildrenDo(ActionFuncsName.restart);
     }
     playFunc: Function = ()=>{};
     stopFunc: Function = ()=>{};
