@@ -8,7 +8,6 @@ const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: 
 
 import Container from './container';
 
-//メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
 
 export default class Sound extends Container{
     private _buffer: AudioBuffer;
