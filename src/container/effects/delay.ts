@@ -1,4 +1,4 @@
-import Master from './master';
+import Master from '../../app/master';
 
 interface IDelayParams {
     interval: number;

@@ -1,9 +1,9 @@
-import Master from './master';
+import Master from '../app/master';
 
 export default class Loader{
     private _resources: Map<string, AudioBuffer> = new Map();
     private _datas: Map<string, ArrayBuffer> = new Map();
-    private _tasks: Array<Promise<unknown>> = [];
+    private _tasks: Array<Promise<ArrayBuffer>> = [];
     private _loadThen: Function = function(){};
     private _cxt: AudioContext = Master.cxt;
 

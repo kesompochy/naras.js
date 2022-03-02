@@ -1,6 +1,6 @@
-import Loader from './loader';
+import Loader from '../loader/loader';
 import Master from './master';
-import {MasterContainer} from './container';
+import {MasterContainer} from '../container/container';
 
 export default class App {
     loader: Loader = new Loader();

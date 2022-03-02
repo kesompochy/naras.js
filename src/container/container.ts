@@ -1,7 +1,7 @@
-import Master from './master';
+import Master from '../app/master';
 
-import Delay from './delay';
-import Panner from './pan';
+import Delay from './effects/delay';
+import Panner from './effects/pan';
 
 interface ActionFuncs{
     play: CallableFunction;
@@ -19,7 +19,7 @@ abstract class AbstractSounder {
 }
 
 
-import { IDelayParams, defaultDelayParams } from './delay';
+import { IDelayParams, defaultDelayParams } from './effects/delay';
 
 export interface IOptions {
     volume?: number;
