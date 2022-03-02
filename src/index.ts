@@ -1,7 +1,6 @@
 
-import Sound from './container/sound';
-import SoundMaster from './app/master';
+import Sound from './sound/sound';
 import App from './app/application';
-import Container from './container/container';
+import Mixer from './mixer/mixer';
 
-export {Sound, SoundMaster, App, Container};
+export { App, Mixer, Sound };

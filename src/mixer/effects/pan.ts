@@ -1,4 +1,4 @@
-import Master from '../../app/master';
+import Master from '../../app/narasmaster';
 
 interface IPannerPosition{
     x: number;
