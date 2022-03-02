@@ -89,20 +89,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MasterContainer = exports.defaultOptions = void 0;
 var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var delay_1 = __importDefault(__webpack_require__(/*! ./delay */ "./src/delay.ts"));
+var pan_1 = __importDefault(__webpack_require__(/*! ./pan */ "./src/pan.ts"));
 var AbstractSounder = /** @class */ (function () {
     function AbstractSounder() {
     }
     return AbstractSounder;
 }());
-var defaultDelayParams = {
-    interval: 1,
-    attenuation: 0.5
-};
+var delay_2 = __webpack_require__(/*! ./delay */ "./src/delay.ts");
 exports.defaultOptions = {
     volume: 1,
     loop: false,
     pitch: 1,
-    delay: defaultDelayParams
+    delay: delay_2.defaultDelayParams,
+    useDelay: false
 };
 var ActionFuncsName;
 (function (ActionFuncsName) {
@@ -119,48 +119,69 @@ var Container = /** @class */ (function (_super) {
         //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
         _this._cxt = master_1.default.cxt;
         _this._inputNode = master_1.default.cxt.createGain();
-        _this.outputNode = master_1.default.cxt.createGain();
+        _this._outputNode = master_1.default.cxt.createGain();
         _this._gainNode = master_1.default.cxt.createGain();
-        _this._attenuationNode = master_1.default.cxt.createGain();
-        _this._delayNode = master_1.default.cxt.createDelay();
-        _this._delaySwitch = master_1.default.cxt.createGain();
-        _this._pannerNode = master_1.default.cxt.createPanner();
-        _this._volume = 1;
-        _this._pitch = 1;
-        _this._delay = defaultDelayParams;
+        _this._volume = exports.defaultOptions.volume;
+        _this._pitch = exports.defaultOptions.pitch;
         _this.children = [];
         _this.actionFuncs = { play: _this.playFunc, stop: _this.stopFunc, restart: _this.restartFunc, pause: _this.pauseFunc };
         _this.playFunc = function () { };
         _this.stopFunc = function () { };
         _this.pauseFunc = function () { };
         _this.restartFunc = function () { };
-        _this._inputNode.connect(_this._gainNode);
-        _this._gainNode.connect(_this._pannerNode);
-        _this._pannerNode.connect(_this.outputNode);
-        _this._attenuationNode.connect(_this._delayNode);
-        _this._delayNode.connect(_this._attenuationNode);
-        _this._delayNode.connect(_this._delaySwitch);
         if (!options)
             options = exports.defaultOptions;
         _this.volume = options.volume || exports.defaultOptions.volume;
         _this.pitch = options.pitch || exports.defaultOptions.pitch;
-        if (options.delay) {
+        _this._delaying = options.useDelay || exports.defaultOptions.useDelay;
+        _this._panner = new pan_1.default(0, 0, 0);
+        _this._delay = new delay_1.default(_this._inputNode, options.delay || exports.defaultOptions.delay);
+        _this._inputNode.connect(_this._panner.node);
+        _this._panner.connect(_this._gainNode);
+        _this._gainNode.connect(_this._outputNode);
+        if (options.useDelay) {
             _this.useDelay();
-            _this.delay = options.delay;
         }
-        _this._inputNode.connect(_this._delayNode);
         return _this;
     }
     Container.prototype.useDelay = function () {
-        this._delaySwitch.connect(this._gainNode);
+        this._delaying = true;
+        this._delay.connect(this._gainNode);
     };
     Container.prototype.unuseDelay = function () {
-        this._delaySwitch.disconnect(0);
+        this._delaying = false;
+        this._delay.disconnect();
+    };
+    Object.defineProperty(Container.prototype, "delay", {
+        get: function () {
+            return this._delay;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "delaying", {
+        get: function () {
+            return this._delaying;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Container.prototype.addChildren = function () {
+        var ary = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            ary[_i] = arguments[_i];
+        }
+        for (var i = 0, len = ary.length; i < len; i++) {
+            this.addChild(ary[i]);
+        }
     };
     Container.prototype.addChild = function (obj) {
         this.children.push(obj);
-        obj.outputNode.connect(this._inputNode);
+        obj.connect(this._inputNode);
         obj.parent = this;
+    };
+    Container.prototype.connect = function (output) {
+        this._outputNode.connect(output);
     };
     Container.prototype._makeAllChildrenDo = function (funcName) {
         var children = this.children;
@@ -205,103 +226,21 @@ var Container = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
-    Object.defineProperty(Container.prototype, "worldPitch", {
-        get: function () {
-            if (this.parent) {
-                return this.parent.worldPitch * this.parent.pitch;
-            }
-            else {
-                return 1;
-            }
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "delay", {
-        get: function () {
-            return this._delay;
-        },
-        set: function (options) {
-            this._delay = options;
-            this._attenuationNode.gain.value = options.attenuation;
-            this._delayNode.delayTime.value = options.interval;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "delayIntarval", {
-        get: function () {
-            return this._delay.interval;
-        },
-        set: function (value) {
-            value = Math.max(value, 0);
-            this._delay.interval = value;
-            this._delayNode.delayTime.value = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "delayAttenuation", {
-        get: function () {
-            return this._delay.attenuation;
-        },
-        set: function (value) {
-            value = Math.max(value, 0);
-            this._delay.attenuation = value;
-            this._attenuationNode.gain.value = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "panX", {
-        get: function () {
-            return this._pannerNode.positionX.value;
-        },
-        set: function (value) {
-            this._pannerNode.positionX.value = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "panY", {
-        get: function () {
-            return this._pannerNode.positionY.value;
-        },
-        set: function (value) {
-            this._pannerNode.positionY.value = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(Container.prototype, "panZ", {
-        get: function () {
-            return this._pannerNode.positionZ.value;
-        },
-        set: function (value) {
-            this._pannerNode.positionZ.value = value;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Container.prototype.setPanning = function (x, y, z) {
-        if (!y || !z) {
-            if (isFinite(x))
-                this._pannerNode.positionX.value = this._pannerNode.positionY.value = this._pannerNode.positionZ.value = x;
-        }
-        else if (!z) {
-            if (isFinite(x) && isFinite(y)) {
-                this._pannerNode.positionX.value = x;
-                this._pannerNode.positionY.value = y;
-            }
+    Container.prototype.calcWorldPitch = function () {
+        if (this.parent) {
+            return this.parent.calcWorldPitch() * this.parent.pitch;
         }
         else {
-            if (isFinite(x) && isFinite(y) && isFinite(z)) {
-                this._pannerNode.positionX.value = x;
-                this._pannerNode.positionY.value = y;
-                this._pannerNode.positionZ.value = z;
-            }
+            return 1;
         }
     };
+    Object.defineProperty(Container.prototype, "panner", {
+        get: function () {
+            return this._panner;
+        },
+        enumerable: false,
+        configurable: true
+    });
     return Container;
 }(AbstractSounder));
 exports["default"] = Container;
@@ -309,12 +248,92 @@ var MasterContainer = /** @class */ (function (_super) {
     __extends(MasterContainer, _super);
     function MasterContainer() {
         var _this = _super.call(this) || this;
-        _this.outputNode.connect(master_1.default.cxt.destination);
+        _this.connect(master_1.default.cxt.destination);
         return _this;
     }
     return MasterContainer;
 }(Container));
 exports.MasterContainer = MasterContainer;
+
+
+/***/ }),
+
+/***/ "./src/delay.ts":
+/*!**********************!*\
+  !*** ./src/delay.ts ***!
+  \**********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.defaultDelayParams = void 0;
+var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var defaultDelayParams = {
+    interval: 1,
+    attenuation: 0.5,
+};
+exports.defaultDelayParams = defaultDelayParams;
+var MAX_DELAY_TIME = 10;
+var Delay = /** @class */ (function () {
+    function Delay(input, params) {
+        this._interval = defaultDelayParams.interval;
+        this._attenuation = defaultDelayParams.attenuation;
+        this._delayNode = master_1.default.cxt.createDelay(MAX_DELAY_TIME);
+        this._attenuationNode = master_1.default.cxt.createGain();
+        this._delaySwitch = master_1.default.cxt.createGain();
+        if (!params) {
+            params = defaultDelayParams;
+        }
+        else {
+            params.interval = params.interval || defaultDelayParams.interval;
+            params.attenuation = params.attenuation || defaultDelayParams.attenuation;
+        }
+        this.interval = params.interval;
+        this.attenuation = params.attenuation;
+        input.connect(this._delayNode);
+        this._delayNode.connect(this._attenuationNode);
+        this._attenuationNode.connect(this._delayNode);
+        this._delayNode.connect(this._delaySwitch);
+    }
+    Object.defineProperty(Delay.prototype, "interval", {
+        get: function () {
+            return this._interval;
+        },
+        set: function (value) {
+            value = Math.min(Math.max(value, 0), MAX_DELAY_TIME);
+            this._interval = value;
+            this._delayNode.delayTime.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Delay.prototype, "attenuation", {
+        get: function () {
+            return this._attenuation;
+        },
+        set: function (value) {
+            this._attenuation = value;
+            this._attenuationNode.gain.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Delay.prototype.set = function (interval, attenuation) {
+        this.interval = interval;
+        this.attenuation = attenuation;
+    };
+    Delay.prototype.connect = function (output) {
+        this._delaySwitch.connect(output);
+    };
+    Delay.prototype.disconnect = function () {
+        this._delaySwitch.disconnect(0);
+    };
+    return Delay;
+}());
+exports["default"] = Delay;
 
 
 /***/ }),
@@ -424,6 +443,90 @@ exports["default"] = Master;
 
 /***/ }),
 
+/***/ "./src/pan.ts":
+/*!********************!*\
+  !*** ./src/pan.ts ***!
+  \********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
+var defaultPannerPosition = {
+    x: 0,
+    y: 0,
+    z: 0
+};
+var Panner = /** @class */ (function () {
+    function Panner(x, y, z) {
+        this._pannerNode = master_1.default.cxt.createPanner();
+        this._position = defaultPannerPosition;
+        if (x)
+            this.x = x;
+        if (y)
+            this.y = y;
+        if (z)
+            this.z = z;
+    }
+    Object.defineProperty(Panner.prototype, "x", {
+        get: function () {
+            return this._position.x;
+        },
+        set: function (value) {
+            this._position.x = value;
+            this._pannerNode.positionX.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Panner.prototype, "y", {
+        get: function () {
+            return this._position.y;
+        },
+        set: function (value) {
+            this._pannerNode.positionY.value = value;
+            this._position.y = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Panner.prototype, "z", {
+        get: function () {
+            return this._position.z;
+        },
+        set: function (value) {
+            this._pannerNode.positionZ.value = value;
+            this._position.z = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Panner.prototype.set = function (x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    };
+    Object.defineProperty(Panner.prototype, "node", {
+        get: function () {
+            return this._pannerNode;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Panner.prototype.connect = function (node) {
+        this._pannerNode.connect(node);
+    };
+    return Panner;
+}());
+exports["default"] = Panner;
+
+
+/***/ }),
+
 /***/ "./src/sound.ts":
 /*!**********************!*\
   !*** ./src/sound.ts ***!
@@ -508,7 +611,7 @@ var Sound = /** @class */ (function (_super) {
         this._sourceNode = cxt.createBufferSource();
         this._sourceNode.buffer = this._buffer;
         this._sourceNode.loop = this._loop;
-        var realPitch = this.worldPitch * this._pitch;
+        var realPitch = this.calcWorldPitch() * this._pitch;
         this._sourceNode.playbackRate.value = realPitch;
         var sourceNode = this._sourceNode;
         sourceNode.connect(this._inputNode);

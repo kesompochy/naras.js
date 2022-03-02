@@ -51,7 +51,7 @@ export default class Sound extends Container{
         this._sourceNode.buffer = this._buffer;
 
         this._sourceNode.loop = this._loop;
-        const realPitch = this.worldPitch * this._pitch;
+        const realPitch = this.calcWorldPitch() * this._pitch;
         this._sourceNode.playbackRate.value = realPitch;
         
 

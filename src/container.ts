@@ -1,5 +1,8 @@
 import Master from './master';
 
+import Delay from './delay';
+import Panner from './pan';
+
 interface ActionFuncs{
     play: CallableFunction;
     stop: CallableFunction;
@@ -16,32 +19,28 @@ abstract class AbstractSounder {
 }
 
 
-
+import { IDelayParams, defaultDelayParams } from './delay';
 
 export interface IOptions {
     volume?: number;
     loop?: boolean;
     pitch?: number;
     delay?: IDelayParams;
-}
-
-interface IDelayParams {
-    interval: number;
-    attenuation: number;
+    useDelay?: boolean;
 }
 
 
-const defaultDelayParams: IDelayParams = {
-    interval: 1,
-    attenuation: 0.5
-};
+
 
 export const defaultOptions: IOptions = {
     volume: 1,
     loop: false,
     pitch: 1,
-    delay: defaultDelayParams
+    delay: defaultDelayParams,
+    useDelay: false
 }
+
+
 
 
 enum ActionFuncsName {
@@ -54,72 +53,78 @@ enum ActionFuncsName {
 
 
 
-interface PanningPosition {
-    x: number;
-    y: number;
-    z: number;
-}
-
 
 export default class Container extends AbstractSounder{
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
     protected _cxt: AudioContext = Master.cxt;
     
     protected _inputNode: AudioNode = Master.cxt.createGain();
-    protected outputNode: AudioNode = Master.cxt.createGain();
-
-
+    protected _outputNode: AudioNode = Master.cxt.createGain();
     protected _gainNode: GainNode = Master.cxt.createGain();
     
-    private _attenuationNode: GainNode = Master.cxt.createGain();
-    private _delayNode: DelayNode = Master.cxt.createDelay();
-    private _delaySwitch: AudioNode = Master.cxt.createGain();
+    private _delay: Delay;
+    private _panner: Panner;
 
-    private _pannerNode: PannerNode = Master.cxt.createPanner();
 
-    private _volume: number = 1;
-    protected _pitch: number = 1;
-    private _delay: IDelayParams = defaultDelayParams;
+    private _volume: number = defaultOptions.volume!;
+    protected _pitch: number = defaultOptions.pitch!;
+    private _delaying: boolean;
 
     readonly children: Container[] = [];
     protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
     parent: Container | undefined;
     
-    constructor(options?: IOptions | undefined){
+    constructor(options?: IOptions){
         super();
-
-        this._inputNode.connect(this._gainNode);
-        this._gainNode.connect(this._pannerNode);
-        this._pannerNode.connect(this.outputNode);
-        
-        this._attenuationNode.connect(this._delayNode);
-        this._delayNode.connect(this._attenuationNode);
-        this._delayNode.connect(this._delaySwitch);
-
-        
 
         if(!options) options = defaultOptions;
 
         this.volume = options.volume || defaultOptions.volume!;
         this.pitch = options.pitch || defaultOptions.pitch!;
+        this._delaying = options.useDelay || defaultOptions.useDelay!;
 
-        if(options.delay){
+        this._panner = new Panner(0, 0, 0);
+        this._delay = new Delay(this._inputNode, options.delay || defaultOptions.delay!);
+
+        this._inputNode.connect(this._panner.node);
+        this._panner.connect(this._gainNode);
+        this._gainNode.connect(this._outputNode);
+        
+
+        if(options.useDelay){
             this.useDelay();
-            this.delay = options.delay;
         }
 
-        this._inputNode.connect(this._delayNode);
+
+
     }
     protected useDelay(){
-        this._delaySwitch.connect(this._gainNode);
+        this._delaying = true;
+        this._delay.connect(this._gainNode);
     }
     protected unuseDelay(){
-        this._delaySwitch.disconnect(0);
+        this._delaying = false;
+        this._delay.disconnect();
+    }
+    get delay(): Delay{
+        return this._delay;
+    }
+    get delaying(): boolean{
+        return this._delaying;
+    }
+
+    addChildren(...ary: Container[]){
+        for(let i=0, len=ary.length;i<len;i++){
+            this.addChild(ary[i]);
+        }
     }
     addChild(obj: Container){
         this.children.push(obj);
-        obj.outputNode.connect(this._inputNode);
+        obj.connect(this._inputNode);
         obj.parent = this;
+    }
+    protected connect(output: AudioNode){
+        this._outputNode.connect(output);
     }
 
     private _makeAllChildrenDo(funcName: ActionFuncsName){
@@ -162,77 +167,22 @@ export default class Container extends AbstractSounder{
     get pitch(): number{
         return this._pitch;
     }
-    get worldPitch(): number{
+    protected calcWorldPitch(): number{
         if(this.parent){
-            return this.parent.worldPitch*this.parent.pitch;
+            return this.parent.calcWorldPitch()*this.parent.pitch;
         } else {
             return 1;
         }
     }
-    set delay(options: IDelayParams){
-        this._delay = options;
-        this._attenuationNode.gain.value = options.attenuation;
-        this._delayNode.delayTime.value = options.interval;
-    }
-    get delay(): IDelayParams{
-        return this._delay;
-    }
-    set delayIntarval(value: number){
-        value = Math.max(value, 0);
-        this._delay.interval = value;
-        this._delayNode.delayTime.value = value;
-    }
-    set delayAttenuation(value: number){
-        value = Math.max(value, 0);
-        this._delay.attenuation = value;
-        this._attenuationNode.gain.value = value;
-    }
-    get delayIntarval(){
-        return this._delay.interval;
-    }
-    get delayAttenuation(){
-        return this._delay.attenuation;
-    }
 
-    set panX(value: number){
-        this._pannerNode.positionX.value = value;
-    }
-    set panY(value: number){
-        this._pannerNode.positionY.value = value;
-    }
-    set panZ(value: number){
-        this._pannerNode.positionZ.value = value;
-    }
-    get panX(): number{
-        return this._pannerNode.positionX.value;
-    }
-    get panY(): number{
-        return this._pannerNode.positionY.value;
-    }
-    get panZ(): number{
-        return this._pannerNode.positionZ.value;
-    }
-    setPanning(x: number, y?: number, z?: number): void{
-        if(!y || !z){
-            if(isFinite(x)) this._pannerNode.positionX.value = this._pannerNode.positionY.value = this._pannerNode.positionZ.value = x;
-        } else if(!z){
-            if(isFinite(x) && isFinite(y)){
-                this._pannerNode.positionX.value = x;
-                this._pannerNode.positionY.value = y;
-            }
-        } else {
-            if(isFinite(x) && isFinite(y) && isFinite(z)){
-                this._pannerNode.positionX.value = x;
-                this._pannerNode.positionY.value = y;
-                this._pannerNode.positionZ.value = z;
-            }
-        }
+    get panner(): Panner{
+        return this._panner;
     }
 }
 
 export class MasterContainer extends Container{
     constructor(){
         super();
-        this.outputNode.connect(Master.cxt.destination)
+        this.connect(Master.cxt.destination);
     }
 }
