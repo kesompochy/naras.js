@@ -22,21 +22,27 @@ export interface IOptions {
     volume?: number;
     loop?: boolean;
     pitch?: number;
-    delay?: IDelayParams | null;
-}
-
-
-export const defaultOptions: IOptions = {
-    volume: 1,
-    loop: false,
-    pitch: 1,
-    delay: null
+    delay?: IDelayParams;
 }
 
 interface IDelayParams {
     interval: number;
     attenuation: number;
 }
+
+
+const defaultDelayParams: IDelayParams = {
+    interval: 1,
+    attenuation: 0.5
+};
+
+export const defaultOptions: IOptions = {
+    volume: 1,
+    loop: false,
+    pitch: 1,
+    delay: defaultDelayParams
+}
+
 
 enum ActionFuncsName {
     play = 'play',
@@ -45,21 +51,15 @@ enum ActionFuncsName {
     pause = 'pause'
 };
 
-const defaultDelayParams: IDelayParams = {
-    interval: 1,
-    attenuation: 0.5
-}
+
+
 
 interface PanningPosition {
     x: number;
     y: number;
     z: number;
 }
-const defaultPanningPosition: PanningPosition = {
-    x: 0,
-    y: 0,
-    z: 0
-};
+
 
 export default class Container extends AbstractSounder{
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
@@ -71,7 +71,7 @@ export default class Container extends AbstractSounder{
 
     protected _gainNode: GainNode = Master.cxt.createGain();
     
-    private _attenuator: GainNode = Master.cxt.createGain();
+    private _attenuationNode: GainNode = Master.cxt.createGain();
     private _delayNode: DelayNode = Master.cxt.createDelay();
     private _delaySwitch: AudioNode = Master.cxt.createGain();
 
@@ -92,8 +92,8 @@ export default class Container extends AbstractSounder{
         this._gainNode.connect(this._pannerNode);
         this._pannerNode.connect(this.outputNode);
         
-        this._attenuator.connect(this._delayNode);
-        this._delayNode.connect(this._attenuator);
+        this._attenuationNode.connect(this._delayNode);
+        this._delayNode.connect(this._attenuationNode);
         this._delayNode.connect(this._delaySwitch);
 
         
@@ -171,12 +171,29 @@ export default class Container extends AbstractSounder{
     }
     set delay(options: IDelayParams){
         this._delay = options;
-        this._attenuator.gain.value = options.attenuation;
+        this._attenuationNode.gain.value = options.attenuation;
         this._delayNode.delayTime.value = options.interval;
     }
     get delay(): IDelayParams{
         return this._delay;
     }
+    set delayIntarval(value: number){
+        value = Math.max(value, 0);
+        this._delay.interval = value;
+        this._delayNode.delayTime.value = value;
+    }
+    set delayAttenuation(value: number){
+        value = Math.max(value, 0);
+        this._delay.attenuation = value;
+        this._attenuationNode.gain.value = value;
+    }
+    get delayIntarval(){
+        return this._delay.interval;
+    }
+    get delayAttenuation(){
+        return this._delay.attenuation;
+    }
+
     set panX(value: number){
         this._pannerNode.positionX.value = value;
     }

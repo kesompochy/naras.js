@@ -94,11 +94,15 @@ var AbstractSounder = /** @class */ (function () {
     }
     return AbstractSounder;
 }());
+var defaultDelayParams = {
+    interval: 1,
+    attenuation: 0.5
+};
 exports.defaultOptions = {
     volume: 1,
     loop: false,
     pitch: 1,
-    delay: null
+    delay: defaultDelayParams
 };
 var ActionFuncsName;
 (function (ActionFuncsName) {
@@ -108,15 +112,6 @@ var ActionFuncsName;
     ActionFuncsName["pause"] = "pause";
 })(ActionFuncsName || (ActionFuncsName = {}));
 ;
-var defaultDelayParams = {
-    interval: 1,
-    attenuation: 0.5
-};
-var defaultPanningPosition = {
-    x: 0,
-    y: 0,
-    z: 0
-};
 var Container = /** @class */ (function (_super) {
     __extends(Container, _super);
     function Container(options) {
@@ -126,7 +121,7 @@ var Container = /** @class */ (function (_super) {
         _this._inputNode = master_1.default.cxt.createGain();
         _this.outputNode = master_1.default.cxt.createGain();
         _this._gainNode = master_1.default.cxt.createGain();
-        _this._attenuator = master_1.default.cxt.createGain();
+        _this._attenuationNode = master_1.default.cxt.createGain();
         _this._delayNode = master_1.default.cxt.createDelay();
         _this._delaySwitch = master_1.default.cxt.createGain();
         _this._pannerNode = master_1.default.cxt.createPanner();
@@ -142,8 +137,8 @@ var Container = /** @class */ (function (_super) {
         _this._inputNode.connect(_this._gainNode);
         _this._gainNode.connect(_this._pannerNode);
         _this._pannerNode.connect(_this.outputNode);
-        _this._attenuator.connect(_this._delayNode);
-        _this._delayNode.connect(_this._attenuator);
+        _this._attenuationNode.connect(_this._delayNode);
+        _this._delayNode.connect(_this._attenuationNode);
         _this._delayNode.connect(_this._delaySwitch);
         if (!options)
             options = exports.defaultOptions;
@@ -228,8 +223,32 @@ var Container = /** @class */ (function (_super) {
         },
         set: function (options) {
             this._delay = options;
-            this._attenuator.gain.value = options.attenuation;
+            this._attenuationNode.gain.value = options.attenuation;
             this._delayNode.delayTime.value = options.interval;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "delayIntarval", {
+        get: function () {
+            return this._delay.interval;
+        },
+        set: function (value) {
+            value = Math.max(value, 0);
+            this._delay.interval = value;
+            this._delayNode.delayTime.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "delayAttenuation", {
+        get: function () {
+            return this._delay.attenuation;
+        },
+        set: function (value) {
+            value = Math.max(value, 0);
+            this._delay.attenuation = value;
+            this._attenuationNode.gain.value = value;
         },
         enumerable: false,
         configurable: true
