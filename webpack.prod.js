@@ -6,7 +6,7 @@ module.exports = merge(common, {
     mode: 'production',
     cache: false,
     output: {
-        filename: `naras.min.js`,
+        filename: 'naras.min.js',
 
     },
 })
