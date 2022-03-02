@@ -8,4 +8,4 @@ There is no default export. The correct way to import NarasJS is:
 
     import * as NARAS from 'naras.js';
 
-The minimized file is `naras.min.js` in `./dist/`.
+The main file is `naras.min.js` in `./dist/`.
