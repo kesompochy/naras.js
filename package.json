@@ -1,0 +1,24 @@
+{
+  "name": "naras.js",
+  "version": "1.0.2",
+  "description": "",
+  "main": "./dist/naras.min.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack --config webpack.dev.js",
+    "devw": "webpack --config webpack.dev.js --watch",
+    "prod": "webpack --config webpack.prod.js",
+    "prodw": "webpack --config webpack.prod.js --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "ts-loader": "^9.2.6",
+    "tsc": "^2.0.4",
+    "typescript": "^4.5.5",
+    "webpack": "^5.69.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-merge": "^5.8.0"
+  }
+}
