@@ -25,7 +25,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 var loader_1 = __importDefault(__webpack_require__(/*! ../loader/loader */ "./src/loader/loader.ts"));
 var narasmaster_1 = __importDefault(__webpack_require__(/*! ./narasmaster */ "./src/app/narasmaster.ts"));
-var mixer_1 = __webpack_require__(Object(function webpackMissingModule() { var e = new Error("Cannot find module '../mixer/mixer'"); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
+var mixer_1 = __webpack_require__(/*! ../mixer/mixer */ "./src/mixer/mixer.ts");
 var App = /** @class */ (function () {
     function App() {
         this.loader = new loader_1.default();
@@ -81,10 +81,93 @@ exports["default"] = Master;
 
 /***/ }),
 
-/***/ "./src/container/effects/delay.ts":
-/*!****************************************!*\
-  !*** ./src/container/effects/delay.ts ***!
-  \****************************************/
+/***/ "./src/index.ts":
+/*!**********************!*\
+  !*** ./src/index.ts ***!
+  \**********************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Sound = exports.Mixer = exports.App = void 0;
+var sound_1 = __importDefault(__webpack_require__(/*! ./sound/sound */ "./src/sound/sound.ts"));
+exports.Sound = sound_1.default;
+var application_1 = __importDefault(__webpack_require__(/*! ./app/application */ "./src/app/application.ts"));
+exports.App = application_1.default;
+var mixer_1 = __importDefault(__webpack_require__(/*! ./mixer/mixer */ "./src/mixer/mixer.ts"));
+exports.Mixer = mixer_1.default;
+
+
+/***/ }),
+
+/***/ "./src/loader/loader.ts":
+/*!******************************!*\
+  !*** ./src/loader/loader.ts ***!
+  \******************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+var narasmaster_1 = __importDefault(__webpack_require__(/*! ../app/narasmaster */ "./src/app/narasmaster.ts"));
+var Loader = /** @class */ (function () {
+    function Loader() {
+        this._resources = new Map();
+        this._datas = new Map();
+        this._tasks = [];
+        this._loadThen = function () { };
+        this._cxt = narasmaster_1.default.cxt;
+    }
+    Loader.prototype.add = function (id, src) {
+        var promise = this._promiseLoadingSound(id, src);
+        this._tasks.push(promise);
+        return this;
+    };
+    Loader.prototype.loadAll = function () {
+        var _this = this;
+        Promise.all(this._tasks)
+            .then(function () { _this._loadThen(); });
+    };
+    Loader.prototype.loadThen = function (func) {
+        this._loadThen = func;
+    };
+    Loader.prototype._promiseLoadingSound = function (id, src) {
+        var _this = this;
+        var promise = new Promise(function (resolve) {
+            fetch(src).then(function (res) {
+                return res.arrayBuffer();
+            }).then(function (data) {
+                _this._datas.set(id, data);
+                return _this._cxt.decodeAudioData(data);
+            }).then(function (buf) {
+                _this._resources.set(id, buf);
+                resolve(buf);
+            });
+        });
+        return promise;
+    };
+    Loader.prototype.getResource = function (id) {
+        return this._resources.get(id);
+    };
+    Loader.prototype.getData = function (id) {
+        return this._datas.get(id);
+    };
+    return Loader;
+}());
+exports["default"] = Loader;
+
+
+/***/ }),
+
+/***/ "./src/mixer/effects/delay.ts":
+/*!************************************!*\
+  !*** ./src/mixer/effects/delay.ts ***!
+  \************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -161,10 +244,10 @@ exports["default"] = Delay;
 
 /***/ }),
 
-/***/ "./src/container/effects/pan.ts":
-/*!**************************************!*\
-  !*** ./src/container/effects/pan.ts ***!
-  \**************************************/
+/***/ "./src/mixer/effects/pan.ts":
+/*!**********************************!*\
+  !*** ./src/mixer/effects/pan.ts ***!
+  \**********************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -245,10 +328,10 @@ exports["default"] = Panner;
 
 /***/ }),
 
-/***/ "./src/container/mixer.ts":
-/*!********************************!*\
-  !*** ./src/container/mixer.ts ***!
-  \********************************/
+/***/ "./src/mixer/mixer.ts":
+/*!****************************!*\
+  !*** ./src/mixer/mixer.ts ***!
+  \****************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -273,14 +356,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.MasterMixer = exports.defaultOptions = void 0;
 var narasmaster_1 = __importDefault(__webpack_require__(/*! ../app/narasmaster */ "./src/app/narasmaster.ts"));
-var delay_1 = __importDefault(__webpack_require__(/*! ./effects/delay */ "./src/container/effects/delay.ts"));
-var pan_1 = __importDefault(__webpack_require__(/*! ./effects/pan */ "./src/container/effects/pan.ts"));
+var delay_1 = __importDefault(__webpack_require__(/*! ./effects/delay */ "./src/mixer/effects/delay.ts"));
+var pan_1 = __importDefault(__webpack_require__(/*! ./effects/pan */ "./src/mixer/effects/pan.ts"));
 var AbstractMixer = /** @class */ (function () {
     function AbstractMixer() {
     }
     return AbstractMixer;
 }());
-var delay_2 = __webpack_require__(/*! ./effects/delay */ "./src/container/effects/delay.ts");
+var delay_2 = __webpack_require__(/*! ./effects/delay */ "./src/mixer/effects/delay.ts");
 exports.defaultOptions = {
     volume: 1,
     loop: false,
@@ -442,10 +525,10 @@ exports.MasterMixer = MasterMixer;
 
 /***/ }),
 
-/***/ "./src/container/sound.ts":
-/*!********************************!*\
-  !*** ./src/container/sound.ts ***!
-  \********************************/
+/***/ "./src/sound/sound.ts":
+/*!****************************!*\
+  !*** ./src/sound/sound.ts ***!
+  \****************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
 
@@ -468,9 +551,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-var mixer_1 = __webpack_require__(/*! ./mixer */ "./src/container/mixer.ts");
+var mixer_1 = __webpack_require__(/*! ../mixer/mixer */ "./src/mixer/mixer.ts");
 var defaultSoundOptions = Object.assign(mixer_1.defaultOptions, { loop: false });
-var mixer_2 = __importDefault(__webpack_require__(/*! ./mixer */ "./src/container/mixer.ts"));
+var mixer_2 = __importDefault(__webpack_require__(/*! ../mixer/mixer */ "./src/mixer/mixer.ts"));
 var Sound = /** @class */ (function (_super) {
     __extends(Sound, _super);
     function Sound(buf, options) {
@@ -575,89 +658,6 @@ var Sound = /** @class */ (function (_super) {
     return Sound;
 }(mixer_2.default));
 exports["default"] = Sound;
-
-
-/***/ }),
-
-/***/ "./src/index.ts":
-/*!**********************!*\
-  !*** ./src/index.ts ***!
-  \**********************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Sound = exports.Mixer = exports.App = void 0;
-var sound_1 = __importDefault(__webpack_require__(/*! ./container/sound */ "./src/container/sound.ts"));
-exports.Sound = sound_1.default;
-var application_1 = __importDefault(__webpack_require__(/*! ./app/application */ "./src/app/application.ts"));
-exports.App = application_1.default;
-var mixer_1 = __importDefault(__webpack_require__(/*! ./container/mixer */ "./src/container/mixer.ts"));
-exports.Mixer = mixer_1.default;
-
-
-/***/ }),
-
-/***/ "./src/loader/loader.ts":
-/*!******************************!*\
-  !*** ./src/loader/loader.ts ***!
-  \******************************/
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-var narasmaster_1 = __importDefault(__webpack_require__(/*! ../app/narasmaster */ "./src/app/narasmaster.ts"));
-var Loader = /** @class */ (function () {
-    function Loader() {
-        this._resources = new Map();
-        this._datas = new Map();
-        this._tasks = [];
-        this._loadThen = function () { };
-        this._cxt = narasmaster_1.default.cxt;
-    }
-    Loader.prototype.add = function (id, src) {
-        var promise = this._promiseLoadingSound(id, src);
-        this._tasks.push(promise);
-        return this;
-    };
-    Loader.prototype.loadAll = function () {
-        var _this = this;
-        Promise.all(this._tasks)
-            .then(function () { _this._loadThen(); });
-    };
-    Loader.prototype.loadThen = function (func) {
-        this._loadThen = func;
-    };
-    Loader.prototype._promiseLoadingSound = function (id, src) {
-        var _this = this;
-        var promise = new Promise(function (resolve) {
-            fetch(src).then(function (res) {
-                return res.arrayBuffer();
-            }).then(function (data) {
-                _this._datas.set(id, data);
-                return _this._cxt.decodeAudioData(data);
-            }).then(function (buf) {
-                _this._resources.set(id, buf);
-                resolve(buf);
-            });
-        });
-        return promise;
-    };
-    Loader.prototype.getResource = function (id) {
-        return this._resources.get(id);
-    };
-    Loader.prototype.getData = function (id) {
-        return this._datas.get(id);
-    };
-    return Loader;
-}());
-exports["default"] = Loader;
 
 
 /***/ })
