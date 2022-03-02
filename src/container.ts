@@ -7,10 +7,7 @@ abstract class AbstractSounder {
     protected abstract restartFunc: Function;
 }
 
-export interface IDelayParams {
-    interval: number;
-    attenuation: number;
-}
+
 
 
 export interface IOptions {
@@ -28,37 +25,64 @@ export const defaultOptions: IOptions = {
     delay: null
 }
 
-export const defaultDelayParams: IDelayParams = {
+interface IDelayParams {
+    interval: number;
+    attenuation: number;
+}
+
+const defaultDelayParams: IDelayParams = {
     interval: 0.05,
     attenuation: 0.5
 }
 
-const funcSuffix = 'Func';
+interface PanningPosition {
+    x: number;
+    y: number;
+    z: number;
+}
+const defaultPanningPosition: PanningPosition = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 
 export default class Container extends AbstractSounder{
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
+    protected _cxt: AudioContext = Master.cxt;
+    
     protected _inputNode: AudioNode = Master.cxt.createGain();
     protected outputNode: AudioNode = Master.cxt.createGain();
+
+
     protected _gainNode: GainNode = Master.cxt.createGain();
-    protected _cxt: AudioContext = Master.cxt;
-    protected _volume: number = 1;
-    protected _pitch: number = 1;
+    
     private _attenuator: GainNode = Master.cxt.createGain();
     private _delayNode: DelayNode = Master.cxt.createDelay();
     private _delaySwitch: AudioNode = Master.cxt.createGain();
+
+    private _pannerNode: PannerNode = Master.cxt.createPanner();
+
+    private _volume: number = 1;
+    protected _pitch: number = 1;
     private _delay: IDelayParams = defaultDelayParams;
+    private _panningPosition: PanningPosition = defaultPanningPosition;
+
     readonly children: Container[] = [];
     protected actionFuncs: {play: CallableFunction, stop: CallableFunction, restart: CallableFunction, pause: CallableFunction};
     parent: Container | undefined;
     
     constructor(options?: IOptions | undefined){
         super();
+
         this._inputNode.connect(this._gainNode);
-        this._gainNode.connect(this.outputNode);
+        this._gainNode.connect(this._pannerNode);
+        this._pannerNode.connect(this.outputNode);
         
         this._attenuator.connect(this._delayNode);
         this._delayNode.connect(this._attenuator);
         this._delayNode.connect(this._delaySwitch);
+
+        
 
         if(!options) options = defaultOptions;
 
@@ -140,6 +164,40 @@ export default class Container extends AbstractSounder{
     }
     get delay(): IDelayParams{
         return this._delay;
+    }
+    set panX(value: number){
+        this._pannerNode.positionX.value = value;
+    }
+    set panY(value: number){
+        this._pannerNode.positionY.value = value;
+    }
+    set panZ(value: number){
+        this._pannerNode.positionZ.value = value;
+    }
+    get panX(): number{
+        return this._pannerNode.positionX.value;
+    }
+    get panY(): number{
+        return this._pannerNode.positionY.value;
+    }
+    get panZ(): number{
+        return this._pannerNode.positionZ.value;
+    }
+    setPanning(x: number, y?: number, z?: number): void{
+        if(!y || !z){
+            if(isFinite(x)) this._pannerNode.positionX.value = this._pannerNode.positionY.value = this._pannerNode.positionZ.value = x;
+        } else if(!z){
+            if(isFinite(x) && isFinite(y)){
+                this._pannerNode.positionX.value = x;
+                this._pannerNode.positionY.value = y;
+            }
+        } else {
+            if(isFinite(x) && isFinite(y) && isFinite(z)){
+                this._pannerNode.positionX.value = x;
+                this._pannerNode.positionY.value = y;
+                this._pannerNode.positionZ.value = z;
+            }
+        }
     }
 }
 

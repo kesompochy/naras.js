@@ -87,7 +87,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MasterContainer = exports.defaultDelayParams = exports.defaultOptions = void 0;
+exports.MasterContainer = exports.defaultOptions = void 0;
 var master_1 = __importDefault(__webpack_require__(/*! ./master */ "./src/master.ts"));
 var AbstractSounder = /** @class */ (function () {
     function AbstractSounder() {
@@ -100,33 +100,40 @@ exports.defaultOptions = {
     pitch: 1,
     delay: null
 };
-exports.defaultDelayParams = {
+var defaultDelayParams = {
     interval: 0.05,
     attenuation: 0.5
 };
-var funcSuffix = 'Func';
+var defaultPanningPosition = {
+    x: 0,
+    y: 0,
+    z: 0
+};
 var Container = /** @class */ (function (_super) {
     __extends(Container, _super);
     function Container(options) {
         var _this = _super.call(this) || this;
         //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
+        _this._cxt = master_1.default.cxt;
         _this._inputNode = master_1.default.cxt.createGain();
         _this.outputNode = master_1.default.cxt.createGain();
         _this._gainNode = master_1.default.cxt.createGain();
-        _this._cxt = master_1.default.cxt;
-        _this._volume = 1;
-        _this._pitch = 1;
         _this._attenuator = master_1.default.cxt.createGain();
         _this._delayNode = master_1.default.cxt.createDelay();
         _this._delaySwitch = master_1.default.cxt.createGain();
-        _this._delay = exports.defaultDelayParams;
+        _this._pannerNode = master_1.default.cxt.createPanner();
+        _this._volume = 1;
+        _this._pitch = 1;
+        _this._delay = defaultDelayParams;
+        _this._panningPosition = defaultPanningPosition;
         _this.children = [];
         _this.playFunc = function () { };
         _this.stopFunc = function () { };
         _this.pauseFunc = function () { };
         _this.restartFunc = function () { };
         _this._inputNode.connect(_this._gainNode);
-        _this._gainNode.connect(_this.outputNode);
+        _this._gainNode.connect(_this._pannerNode);
+        _this._pannerNode.connect(_this.outputNode);
         _this._attenuator.connect(_this._delayNode);
         _this._delayNode.connect(_this._attenuator);
         _this._delayNode.connect(_this._delaySwitch);
@@ -220,6 +227,55 @@ var Container = /** @class */ (function (_super) {
         enumerable: false,
         configurable: true
     });
+    Object.defineProperty(Container.prototype, "panX", {
+        get: function () {
+            return this._pannerNode.positionX.value;
+        },
+        set: function (value) {
+            this._pannerNode.positionX.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "panY", {
+        get: function () {
+            return this._pannerNode.positionY.value;
+        },
+        set: function (value) {
+            this._pannerNode.positionY.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(Container.prototype, "panZ", {
+        get: function () {
+            return this._pannerNode.positionZ.value;
+        },
+        set: function (value) {
+            this._pannerNode.positionZ.value = value;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Container.prototype.setPanning = function (x, y, z) {
+        if (!y || !z) {
+            if (isFinite(x))
+                this._pannerNode.positionX.value = this._pannerNode.positionY.value = this._pannerNode.positionZ.value = x;
+        }
+        else if (!z) {
+            if (isFinite(x) && isFinite(y)) {
+                this._pannerNode.positionX.value = x;
+                this._pannerNode.positionY.value = y;
+            }
+        }
+        else {
+            if (isFinite(x) && isFinite(y) && isFinite(z)) {
+                this._pannerNode.positionX.value = x;
+                this._pannerNode.positionY.value = y;
+                this._pannerNode.positionZ.value = z;
+            }
+        }
+    };
     return Container;
 }(AbstractSounder));
 exports["default"] = Container;
@@ -371,7 +427,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 var container_1 = __webpack_require__(/*! ./container */ "./src/container.ts");
 var defaultSoundOptions = Object.assign(container_1.defaultOptions, { loop: false });
 var container_2 = __importDefault(__webpack_require__(/*! ./container */ "./src/container.ts"));
-//メモ　detune.value は +100で1/12オクターブ上　+1200で1オクターブ上 -1200で1オクターブ下
 var Sound = /** @class */ (function (_super) {
     __extends(Sound, _super);
     function Sound(buf, options) {
