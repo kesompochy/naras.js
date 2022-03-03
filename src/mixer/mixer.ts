@@ -23,7 +23,7 @@ import { IDelayParams, defaultDelayParams } from './effects/delay';
 export interface IOptions {
     volume?: number;
     loop?: boolean;
-    pitch?: number;
+    scale?: number;
     delay?: IDelayParams;
     useDelay?: boolean;
 }
@@ -32,7 +32,7 @@ export interface IOptions {
 export const defaultOptions: IOptions = {
     volume: 1,
     loop: false,
-    pitch: 1,
+    scale: 1,
     delay: defaultDelayParams,
     useDelay: false
 }
@@ -64,7 +64,7 @@ export default class Mixer extends AbstractMixer{
 
 
     private _volume: number = defaultOptions.volume!;
-    protected _pitch: number = defaultOptions.pitch!;
+    protected _scale: number = defaultOptions.scale!;
     private _delaying: boolean;
 
     private _position: number = 0;
@@ -84,12 +84,12 @@ export default class Mixer extends AbstractMixer{
 
         if(!options) options = defaultOptions;
 
-        this.volume = options.volume || defaultOptions.volume!;
-        this.pitch = options.pitch || defaultOptions.pitch!;
-        this._delaying = options.useDelay || defaultOptions.useDelay!;
-
         this._panner = new Panner(0, 0, 0);
         this._delay = new Delay(this._inputNode, options.delay || defaultOptions.delay!);
+
+        this.volume = options.volume || defaultOptions.volume!;
+        this.scale = options.scale || defaultOptions.scale!;
+        this._delaying = options.useDelay || defaultOptions.useDelay!;
 
         this._inputNode.connect(this._panner.node);
         this._panner.connect(this._gainNode);
@@ -166,28 +166,32 @@ export default class Mixer extends AbstractMixer{
     get volume(): number{
         return this._volume;
     }
-    set pitch(value: number) {
-        this._pitch = value;
+    set scale(value: number) {
+        this._scale = value;
+        this._delay.realScale = this.realScale;
     }
-    get pitch(): number{
-        return this._pitch;
+    get scale(): number{
+        return this._scale;
     }
-    protected calcWorldPitch(): number{
+    get worldScale(): number{
         if(this.parent){
-            return this.parent.calcWorldPitch()*this.parent.pitch;
+            return this.parent.worldScale*this.parent.scale;
         } else {
             return 1;
         }
     }
+    get realScale(): number{
+        return  this.worldScale*this.scale;
+    }
     get worldPosition(): number{
         if(this.parent){
-            return this.parent.worldPosition+this.parent.position;
+            return this.parent.worldPosition+this.parent.position*this.parent.worldScale;
         } else {
             return 0;
         }
     }
     get realPosition(): number{
-        return this.worldPosition + this.position;
+        return this.worldPosition + this.position*this.worldScale;
     }
 
     get panner(): Panner{

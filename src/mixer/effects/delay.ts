@@ -20,6 +20,7 @@ export default class Delay {
     private _delayNode: DelayNode = Master.cxt.createDelay(MAX_DELAY_TIME);
     private _attenuationNode: GainNode = Master.cxt.createGain();
     private _delaySwitch: GainNode = Master.cxt.createGain();
+    private _realScale: number = 1;
 
     constructor(input: AudioNode, params?: IDelayParams){
         if(!params){
@@ -40,7 +41,7 @@ export default class Delay {
     set interval(value: number){
         value = Math.min(Math.max(value, 0), MAX_DELAY_TIME);
         this._interval = value;
-        this._delayNode.delayTime.value = value;
+        this._delayNode.delayTime.value = value * this._realScale;
     }
     get interval(): number{
         return this._interval;
@@ -55,6 +56,11 @@ export default class Delay {
     set(interval: number, attenuation: number){
         this.interval = interval;
         this.attenuation = attenuation;
+    }
+
+    set realScale(value: number){
+        this._realScale = value;
+        this._delayNode.delayTime.value = this._interval * value;
     }
 
     connect(output: AudioNode){
