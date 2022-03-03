@@ -15,9 +15,8 @@ import Audio from '../audio/audio';
 export default class Sound extends Container{
     private _audio: Audio | undefined;
     private _sourceNode: AudioBufferSourceNode | undefined | null;
-    private _duration: number = 0;
-    private _playedTime: number = 0;
-    private _startedTime: number = 0;
+    protected _duration: number = 0;
+
     protected _loop: boolean = false;
     private _playing: boolean = false;
     private _endTimer: NodeJS.Timeout | undefined;

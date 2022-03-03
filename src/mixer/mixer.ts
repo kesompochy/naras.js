@@ -5,6 +5,8 @@ import Panner from './effects/pan';
 
 import Sound from '../sound/sound';
 
+const MILLI = 1000;
+
 
 interface ActionFuncs{
     play: CallableFunction;
@@ -80,6 +82,10 @@ export default class Mixer extends AbstractMixer{
     protected _scale: number = defaultOptions.scale!;
     private _useDelay: boolean;
     protected _loop: boolean = false;
+    protected _duration: number = 0;
+
+    protected _playedTime: number = 0;
+    protected _startedTime: number = 0;
 
     private _position: number = 0;
     set position(value: number){
@@ -148,6 +154,8 @@ export default class Mixer extends AbstractMixer{
             const sound = obj as Sound;
             this._size = Math.max(this._size, sound.realPosition + sound.duration*sound.realScale);
         }
+
+        this._duration = this._calcDuration();
     }
     protected connect(output: AudioNode){
         this._outputNode.connect(output);
@@ -176,14 +184,17 @@ export default class Mixer extends AbstractMixer{
         this._makeAllChildrenDo(ActionFuncsName.restart);
     }
     playFunc: Function = ()=>{
+        this._playedTime = 0;
+        this._startedTime = Master.cxt.currentTime + this.realPosition/MILLI;
         if(this._loop) {
-            this._loopTimer = setTimeout(this._loopFunc.bind(this), this._loopRange*this.scale);
+            this._loopTimer = setTimeout(this._loopFunc.bind(this), this.duration);
         }
     };
     stopFunc: Function = ()=>{
         this._clearLoop();
     };
     pauseFunc: Function = ()=>{
+        this._playedTime = (this._playedTime + Master.cxt.currentTime - this._startedTime) % (this._duration/MILLI);
         this._clearLoop();
     };
     restartFunc: Function = ()=>{
@@ -202,6 +213,19 @@ export default class Mixer extends AbstractMixer{
 
     set loop(frag: boolean){
         this._loop = frag;
+    }
+
+    private _calcDuration(): number{
+        let maxEndPoint = 0;
+        const children = this.children;
+        for(let i=0, len=children.length;i<len;i++){
+            const child = children[i];
+            maxEndPoint = Math.max(maxEndPoint, child.realPosition + child.duration);
+        }
+        return maxEndPoint;
+    }
+    get duration(): number{
+        return this._duration;
     }
 
     set loopRange(value: number){

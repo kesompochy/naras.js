@@ -13,17 +13,12 @@ app.loadThen(()=>{
 
     app.master.addChild(mixer);
     mixer.loop = true;
-    mixer.loopRange = 2000;
+    mixer.addChild(sound2);
 
-    const mixer2 = new NARAS.Mixer();
-    mixer2.loop = true;
-    mixer2.loopRange = 300;
-    mixer.addChild(mixer2);
-    mixer2.addChild(sound2);
 
 
     document.getElementById('original').addEventListener('click', ()=>{
-        mixer2.play();
+        mixer.play();
     })
 
 });
