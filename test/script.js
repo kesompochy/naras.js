@@ -11,8 +11,8 @@ app.loadThen(()=>{
     const mixer = new NARAS.Mixer();
     const sound2 = new NARAS.Sound(app.loader.get('sound1'));
 
-    app.master.addChild(sound2);
-    sound2.useDelay();
+    app.master.addChild(mixer);
+    mixer.addChild(sound2);
 
 
     document.getElementById('original').addEventListener('click', ()=>{

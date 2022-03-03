@@ -3,6 +3,8 @@ import Master from '../app/master';
 import Delay from './effects/delay';
 import Panner from './effects/pan';
 
+const MILLI = 1000;
+
 interface ActionFuncs{
     play: CallableFunction;
     stop: CallableFunction;
