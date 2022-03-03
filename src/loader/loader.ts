@@ -1,7 +1,9 @@
 import Master from '../app/master';
 
+import Audio from '../audio/audio';
+
 export default class Loader{
-    private static _resources: Map<string, AudioBuffer> = new Map();
+    private static _resources: Map<string, Audio> = new Map();
     private static _tasks: Array<Promise<ArrayBuffer>> = [];
     private static _loadThen: Function = function(){};
     private static _cxt: AudioContext = Master.cxt;
@@ -26,14 +28,15 @@ export default class Loader{
             }).then((data)=>{
                 return this._cxt.decodeAudioData(data);
             }).then((buf)=>{
-                this._resources.set(id, buf);
+                const audio = new Audio(buf);
+                this._resources.set(id, audio);
                 resolve(buf);
             })
         });
 
         return promise;
     }
-    static get(id: string): AudioBuffer | undefined{
+    static get(id: string): Audio | undefined{
         return this._resources.get(id);
     }
 }
