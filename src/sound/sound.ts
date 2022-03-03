@@ -52,26 +52,29 @@ export default class Sound extends Container{
         this._sourceNode.buffer = this._audio.buffer;
 
         this._sourceNode.loop = this._loop;
-        const realPitch = this.calcWorldPitch() * this._pitch;
-        this._sourceNode.playbackRate.value = realPitch;
+        
+        const realScale = this.realScale;
+        const realPosition = this.realPosition;
+        this._sourceNode.playbackRate.value = 1/realScale;
         
 
         const sourceNode = this._sourceNode;
 
         sourceNode.connect(this._inputNode);
 
-        console.log(this.realPosition);
-        sourceNode.start(cxt.currentTime + this.realPosition, offset);
+        const startTime = cxt.currentTime + this.realPosition;
+        sourceNode.start(startTime, offset);
 
         
         this._sourceNode = sourceNode;
 
-        this._startedTime = (cxt.currentTime + this.realPosition)/realPitch;
+        this._startedTime =startTime;
 
         this._playing = true;
+
         
         if(!this.loop) {
-            const endTime = (this.realPosition + this._duration)*1000/realPitch;
+            const endTime = 1000*(realPosition+this._duration*realScale);
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
 
             if(this._endTimer) {
