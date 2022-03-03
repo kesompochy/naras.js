@@ -18,16 +18,17 @@ export default class Sound extends Container{
     private _duration: number = 0;
     private _playedTime: number = 0;
     private _startedTime: number = 0;
-    private _loop: boolean = false;
+    protected _loop: boolean = false;
     private _playing: boolean = false;
     private _endTimer: NodeJS.Timeout | undefined;
 
+    protected readonly isSound: boolean = true;
     
-    constructor(audio: Audio, options?: ISoundOptions){
+    constructor(audio?: Audio, options?: ISoundOptions){
         
         super(options);
         this._audio = audio;
-        this._duration = audio.duration*MILLI;
+        if(audio) this._duration = audio.duration*MILLI;
 
         if(!options) options = defaultSoundOptions;
 
@@ -87,7 +88,7 @@ export default class Sound extends Container{
         }
     }
 
-    reStartFunc: Function = () => {
+    restartFunc: Function = () => {
         this._play(this._playedTime);
     }
     playFunc: Function = () => {
@@ -103,7 +104,7 @@ export default class Sound extends Container{
     }
     pauseFunc: Function = () =>{
         if(this._playing) {
-            this._playedTime = (this._playedTime + this._cxt!.currentTime - this._startedTime) % this._duration;
+            this._playedTime = (this._playedTime + this._cxt!.currentTime - this._startedTime) % (this._duration/MILLI);
             this._playing = false;
             this._sourceNode!.stop(0);
         }
@@ -128,6 +129,9 @@ export default class Sound extends Container{
     }
     get loop(): boolean{
         return this._loop;
+    }
+    get duration(): number{
+        return this._duration;
     }
 }
 

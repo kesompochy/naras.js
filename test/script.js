@@ -12,12 +12,18 @@ app.loadThen(()=>{
     const sound2 = new NARAS.Sound(app.loader.get('sound1'));
 
     app.master.addChild(mixer);
-    mixer.addChild(sound2);
-    mixer.useDelay = true;
+    mixer.loop = true;
+    mixer.loopRange = 2000;
+
+    const mixer2 = new NARAS.Mixer();
+    mixer2.loop = true;
+    mixer2.loopRange = 300;
+    mixer.addChild(mixer2);
+    mixer2.addChild(sound2);
 
 
     document.getElementById('original').addEventListener('click', ()=>{
-        sound2.play();
+        mixer2.play();
     })
 
 });

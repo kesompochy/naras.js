@@ -3,6 +3,8 @@ import Master from '../app/master';
 import Delay from './effects/delay';
 import Panner from './effects/pan';
 
+import Sound from '../sound/sound';
+
 
 interface ActionFuncs{
     play: CallableFunction;
@@ -71,10 +73,13 @@ export default class Mixer extends AbstractMixer{
     private _delay: Delay;
     private _panner: Panner;
 
+    private _loopTimer: NodeJS.Timeout | undefined;
+    private _loopRange: number = 0;
 
     private _volume: number = defaultOptions.volume!;
     protected _scale: number = defaultOptions.scale!;
     private _useDelay: boolean;
+    protected _loop: boolean = false;
 
     private _position: number = 0;
     set position(value: number){
@@ -87,7 +92,12 @@ export default class Mixer extends AbstractMixer{
     readonly children: Mixer[] = [];
     protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
     parent: Mixer | undefined;
-    
+
+    private _size: number = 0;
+    get size(): number{ return this._size};
+
+    protected readonly isSound: boolean = false;
+
     constructor(options?: IOptions){
         super();
 
@@ -105,11 +115,6 @@ export default class Mixer extends AbstractMixer{
         this._inputNode.connect(this._panner.node);
         this._panner.connect(this._gainNode);
         this._gainNode.connect(this._outputNode);
-        
-
-
-
-
     }
     set useDelay(flag: boolean){
         this._useDelay = flag;
@@ -136,6 +141,13 @@ export default class Mixer extends AbstractMixer{
         this.children.push(obj);
         obj.connect(this._inputNode);
         obj.parent = this;
+
+        this._size = Math.max(this._size, obj.realPosition);
+
+        if(obj.isSound){
+            const sound = obj as Sound;
+            this._size = Math.max(this._size, sound.realPosition + sound.duration*sound.realScale);
+        }
     }
     protected connect(output: AudioNode){
         this._outputNode.connect(output);
@@ -163,10 +175,41 @@ export default class Mixer extends AbstractMixer{
         this.restartFunc();
         this._makeAllChildrenDo(ActionFuncsName.restart);
     }
-    playFunc: Function = ()=>{};
-    stopFunc: Function = ()=>{};
-    pauseFunc: Function = ()=>{};
-    restartFunc: Function = ()=>{};
+    playFunc: Function = ()=>{
+        if(this._loop) {
+            this._loopTimer = setTimeout(this._loopFunc.bind(this), this._loopRange*this.scale);
+        }
+    };
+    stopFunc: Function = ()=>{
+        this._clearLoop();
+    };
+    pauseFunc: Function = ()=>{
+        this._clearLoop();
+    };
+    restartFunc: Function = ()=>{
+        if(this._loop){
+            this._loopTimer = setTimeout(this._loopFunc.bind(this), this._loopRange*this.scale);
+        }
+    };
+    private _clearLoop(): void{
+        if(this._loopTimer) clearTimeout(this._loopTimer);
+        this._loopTimer = undefined;
+    }
+    private _loopFunc(){
+        this.stop();
+        this.play();
+    }
+
+    set loop(frag: boolean){
+        this._loop = frag;
+    }
+
+    set loopRange(value: number){
+        this._loopRange = value;
+    }
+    get loopRange(): number{
+        return this._loopRange;
+    }
 
     set volume(value: number){
         this._volume = value;
