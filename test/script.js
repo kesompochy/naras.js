@@ -13,6 +13,7 @@ app.loadThen(()=>{
 
     app.master.addChild(mixer);
     mixer.addChild(sound2);
+    mixer.useDelay = true;
 
 
     document.getElementById('original').addEventListener('click', ()=>{
