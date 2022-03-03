@@ -1,25 +1,25 @@
 import Master from '../app/master';
 
 export default class Loader{
-    private _resources: Map<string, AudioBuffer> = new Map();
-    private _tasks: Array<Promise<ArrayBuffer>> = [];
-    private _loadThen: Function = function(){};
-    private _cxt: AudioContext = Master.cxt;
+    private static _resources: Map<string, AudioBuffer> = new Map();
+    private static _tasks: Array<Promise<ArrayBuffer>> = [];
+    private static _loadThen: Function = function(){};
+    private static _cxt: AudioContext = Master.cxt;
 
 
-    add(id: string, src: string): Loader{
+    static add(id: string, src: string): Loader{
         const promise = this._promiseLoadingSound(id, src);
         this._tasks.push(promise);
         return this;
     }
-    loadAll(): void{
+    static loadAll(): void{
         Promise.all(this._tasks)
             .then(()=>{this._loadThen();});
     }
-    loadThen(func: Function){
+    static loadThen(func: Function){
         this._loadThen = func;
     }
-    private _promiseLoadingSound(id: string, src: string): Promise<any>{
+    private static _promiseLoadingSound(id: string, src: string): Promise<any>{
         const promise = new Promise((resolve)=>{
             fetch(src).then((res)=>{
                 return res.arrayBuffer();
@@ -33,7 +33,7 @@ export default class Loader{
 
         return promise;
     }
-    getResource(id: string): AudioBuffer | undefined{
+    static get(id: string): AudioBuffer | undefined{
         return this._resources.get(id);
     }
 }
