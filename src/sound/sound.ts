@@ -7,10 +7,11 @@ interface ISoundOptions extends IOptions{
 const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
 
 import Container from '../mixer/mixer';
+import Audio from '../audio/audio';
 
 
 export default class Sound extends Container{
-    private _buffer: AudioBuffer;
+    private _audio: Audio | undefined;
     private _sourceNode: AudioBufferSourceNode | undefined;
     private _duration: number = 0;
     private _playedTime: number = 0;
@@ -20,11 +21,11 @@ export default class Sound extends Container{
     private _endTimer: NodeJS.Timeout | undefined;
 
     
-    constructor(buf: AudioBuffer, options?: ISoundOptions){
+    constructor(audio: Audio, options?: ISoundOptions){
         
         super(options);
-        this._buffer = buf;
-        this._duration = buf.duration;
+        this._audio = audio;
+        this._duration = audio.duration;
 
         if(!options) options = defaultSoundOptions;
 
@@ -35,20 +36,20 @@ export default class Sound extends Container{
     }
 
 
-    set buffer(buffer: AudioBuffer){
-        this._buffer = buffer;
-        this._duration = buffer.duration;
+    set audio(audio: Audio){
+        this._audio = audio;
+        this._duration = audio.duration;
     }
 
     private _play(offset: number = 0){
-        if(!this._buffer){
+        if(!this._audio){
             return;
         }
 
         const cxt = this._cxt;
 
         this._sourceNode = cxt.createBufferSource()!;
-        this._sourceNode.buffer = this._buffer;
+        this._sourceNode.buffer = this._audio.buffer;
 
         this._sourceNode.loop = this._loop;
         const realPitch = this.calcWorldPitch() * this._pitch;
