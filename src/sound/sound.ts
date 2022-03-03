@@ -12,7 +12,7 @@ import Audio from '../audio/audio';
 
 export default class Sound extends Container{
     private _audio: Audio | undefined;
-    private _sourceNode: AudioBufferSourceNode | undefined;
+    private _sourceNode: AudioBufferSourceNode | undefined | null;
     private _duration: number = 0;
     private _playedTime: number = 0;
     private _startedTime: number = 0;
@@ -60,18 +60,18 @@ export default class Sound extends Container{
 
         sourceNode.connect(this._inputNode);
 
-        sourceNode.start(0, offset);
+        console.log(this.realPosition);
+        sourceNode.start(cxt.currentTime + this.realPosition, offset);
 
         
-
         this._sourceNode = sourceNode;
 
-        this._startedTime = cxt.currentTime;
+        this._startedTime = (cxt.currentTime + this.realPosition)/realPitch;
 
         this._playing = true;
         
         if(!this.loop) {
-            const endTime = this._duration*1000/realPitch;
+            const endTime = (this.realPosition + this._duration)*1000/realPitch;
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
 
             if(this._endTimer) {
@@ -109,6 +109,7 @@ export default class Sound extends Container{
     private _endThen(): void{
         this._playing = false;
         this._playedTime = 0;
+        this._sourceNode = null;
         this._endTimer = undefined;
     }
     get playing(): boolean{

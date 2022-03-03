@@ -67,6 +67,14 @@ export default class Mixer extends AbstractMixer{
     protected _pitch: number = defaultOptions.pitch!;
     private _delaying: boolean;
 
+    private _position: number = 0;
+    set position(value: number){
+        this._position = value;
+    }
+    get position(): number{
+        return this._position;
+    }
+
     readonly children: Mixer[] = [];
     protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
     parent: Mixer | undefined;
@@ -170,6 +178,16 @@ export default class Mixer extends AbstractMixer{
         } else {
             return 1;
         }
+    }
+    get worldPosition(): number{
+        if(this.parent){
+            return this.parent.worldPosition+this.parent.position;
+        } else {
+            return 0;
+        }
+    }
+    get realPosition(): number{
+        return this.worldPosition + this.position;
     }
 
     get panner(): Panner{

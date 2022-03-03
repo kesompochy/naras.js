@@ -8,9 +8,13 @@ app.addResource('sound1', './sounds/sound1.wav')
 
 app.loadThen(()=>{
     //this creates a new Sound object from resources you loaded
-    const sound2 = new NARAS.Sound(NARAS.Processer.lowerPitch(app.loader.get('sound1'), 1000, 2));
+    const mixer = new NARAS.Mixer();
+    const sound2 = new NARAS.Sound(app.loader.get('sound1'));
+    sound2.position = 0.7;
+    mixer.position = 1;
 
-    app.master.addChild(sound2);
+    app.master.addChild(mixer);
+    mixer.addChild(sound2);
 
     document.getElementById('original').addEventListener('click', ()=>{
         sound2.play();
