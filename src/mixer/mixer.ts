@@ -3,7 +3,6 @@ import Master from '../app/master';
 import Delay from './effects/delay';
 import Panner from './effects/pan';
 
-const MILLI = 1000;
 
 interface ActionFuncs{
     play: CallableFunction;
@@ -22,12 +21,19 @@ abstract class AbstractMixer {
 
 import { IDelayParams, defaultDelayParams } from './effects/delay';
 
+interface IPannerParams {
+    x?: number;
+    y?: number;
+    z?: number;
+}
+
 export interface IOptions {
     volume?: number;
     loop?: boolean;
     scale?: number;
     delay?: IDelayParams;
     useDelay?: boolean;
+    panner?: IPannerParams;
 }
 
 
@@ -36,7 +42,8 @@ export const defaultOptions: IOptions = {
     loop: false,
     scale: 1,
     delay: defaultDelayParams,
-    useDelay: false
+    useDelay: false,
+    panner: {x: 0, y: 0, z: 0}
 }
 
 
@@ -86,7 +93,8 @@ export default class Mixer extends AbstractMixer{
 
         if(!options) options = defaultOptions;
 
-        this._panner = new Panner(0, 0, 0);
+        const panParam = options.panner || defaultOptions.panner!;
+        this._panner = new Panner(panParam.x, panParam.y, panParam.z);
         this._delay = new Delay(this._inputNode, options.delay || defaultOptions.delay!);
 
         this.volume = options.volume || defaultOptions.volume!;
