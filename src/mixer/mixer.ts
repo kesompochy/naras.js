@@ -67,7 +67,7 @@ export default class Mixer extends AbstractMixer{
 
     private _volume: number = defaultOptions.volume!;
     protected _scale: number = defaultOptions.scale!;
-    private _delaying: boolean;
+    private _useDelay: boolean;
 
     private _position: number = 0;
     set position(value: number){
@@ -91,33 +91,32 @@ export default class Mixer extends AbstractMixer{
 
         this.volume = options.volume || defaultOptions.volume!;
         this.scale = options.scale || defaultOptions.scale!;
-        this._delaying = options.useDelay || defaultOptions.useDelay!;
+        this._useDelay = options.useDelay || defaultOptions.useDelay!;
+        this.useDelay = this._useDelay;
 
         this._inputNode.connect(this._panner.node);
         this._panner.connect(this._gainNode);
         this._gainNode.connect(this._outputNode);
         
 
-        if(options.useDelay){
-            this.useDelay();
+
+
+
+    }
+    set useDelay(flag: boolean){
+        this._useDelay = flag;
+        if(flag) {
+            this._delay.connect(this._gainNode);
+        } else {
+            this._delay.disconnect();
         }
-
-
-
+        
     }
-    protected useDelay(){
-        this._delaying = true;
-        this._delay.connect(this._gainNode);
-    }
-    protected unuseDelay(){
-        this._delaying = false;
-        this._delay.disconnect();
+    get useDelay(): boolean{
+        return this._useDelay;
     }
     get delay(): Delay{
         return this._delay;
-    }
-    get delaying(): boolean{
-        return this._delaying;
     }
 
     addChildren(...ary: Mixer[]){
