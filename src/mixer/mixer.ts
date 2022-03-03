@@ -1,4 +1,4 @@
-import Master from '../app/narasmaster';
+import Master from '../app/master';
 
 import Delay from './effects/delay';
 import Panner from './effects/pan';

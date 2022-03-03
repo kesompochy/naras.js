@@ -1,5 +1,5 @@
 import Loader from '../loader/loader';
-import Master from './narasmaster';
+import Master from './master';
 import {MasterMixer} from '../mixer/mixer';
 
 export default class App {

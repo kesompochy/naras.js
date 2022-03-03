@@ -1,4 +1,4 @@
-import Master from '../app/narasmaster';
+import Master from '../app/master';
 
 export default class Loader{
     private _resources: Map<string, AudioBuffer> = new Map();
@@ -26,23 +26,6 @@ export default class Loader{
             }).then((data)=>{
                 return this._cxt.decodeAudioData(data);
             }).then((buf)=>{
-
-                const audio = Master.cxt.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
-
-                for(let i=0;i<audio.numberOfChannels;i++){
-                    const data = audio.getChannelData(i);
-                    const bufData = buf.getChannelData(i);
-                    const freq = 100;
-                    const pitch = 2;
-                    for(let j=0;j<data.length/freq;j++){
-                        for(let k=0;k<freq;k++){
-                            data[j*freq + k] = bufData[j*freq + pitch*(k%(freq/pitch))];
-                        }
-                    }
-                }
-
-
-                this._resources.set('processed', audio);
                 this._resources.set(id, buf);
                 resolve(buf);
             })
