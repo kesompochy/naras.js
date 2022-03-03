@@ -4,6 +4,8 @@ interface ISoundOptions extends IOptions{
     loop?: boolean;
 }
 
+const MILLI = 1000;
+
 const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
 
 import Container from '../mixer/mixer';
@@ -25,7 +27,7 @@ export default class Sound extends Container{
         
         super(options);
         this._audio = audio;
-        this._duration = audio.duration;
+        this._duration = audio.duration*MILLI;
 
         if(!options) options = defaultSoundOptions;
 
@@ -62,7 +64,7 @@ export default class Sound extends Container{
 
         sourceNode.connect(this._inputNode);
 
-        const startTime = cxt.currentTime + this.realPosition;
+        const startTime = cxt.currentTime + this.realPosition/MILLI;
         sourceNode.start(startTime, offset);
 
         
@@ -74,7 +76,7 @@ export default class Sound extends Container{
 
         
         if(!this.loop) {
-            const endTime = 1000*(realPosition+this._duration*realScale);
+            const endTime = (realPosition+this._duration*realScale);
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
 
             if(this._endTimer) {
