@@ -1,4 +1,4 @@
-import Master from '../../app/narasmaster';
+import Master from '../../app/master';
 
 interface IDelayParams {
     interval: number;
@@ -6,20 +6,22 @@ interface IDelayParams {
 }
 
 const defaultDelayParams: IDelayParams = {
-    interval: 1,
+    interval: 1000,
     attenuation: 0.5,
 };
 
 export {IDelayParams, defaultDelayParams};
 
-const MAX_DELAY_TIME = 10;
+const MAX_DELAY_TIME = 10000;
+const MILLI = 1000;
 
 export default class Delay {
     private _interval: number = defaultDelayParams.interval;
     private _attenuation: number = defaultDelayParams.attenuation;
-    private _delayNode: DelayNode = Master.cxt.createDelay(MAX_DELAY_TIME);
+    private _delayNode: DelayNode = Master.cxt.createDelay(MAX_DELAY_TIME/MILLI);
     private _attenuationNode: GainNode = Master.cxt.createGain();
     private _delaySwitch: GainNode = Master.cxt.createGain();
+    private _realScale: number = 1;
 
     constructor(input: AudioNode, params?: IDelayParams){
         if(!params){
@@ -40,7 +42,7 @@ export default class Delay {
     set interval(value: number){
         value = Math.min(Math.max(value, 0), MAX_DELAY_TIME);
         this._interval = value;
-        this._delayNode.delayTime.value = value;
+        this._delayNode.delayTime.value = value/MILLI * this._realScale;
     }
     get interval(): number{
         return this._interval;
@@ -55,6 +57,11 @@ export default class Delay {
     set(interval: number, attenuation: number){
         this.interval = interval;
         this.attenuation = attenuation;
+    }
+
+    set realScale(value: number){
+        this._realScale = value;
+        this._delayNode.delayTime.value = this._interval/MILLI * value;
     }
 
     connect(output: AudioNode){
