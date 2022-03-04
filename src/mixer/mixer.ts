@@ -6,22 +6,7 @@ import Panner from './effects/pan';
 import Sound from '../sound/sound';
 
 const MILLI = 1000;
-
-
-interface ActionFuncs{
-    play: CallableFunction;
-    stop: CallableFunction;
-    restart: CallableFunction;
-    pause: CallableFunction;
-}
-
-abstract class AbstractMixer {
-    protected abstract playFunc: Function;
-    protected abstract stopFunc: Function;
-    protected abstract pauseFunc: Function;
-    protected abstract restartFunc: Function;
-    protected abstract actionFuncs: ActionFuncs;
-}
+const ActionSuffix = 'Action';
 
 import { IDelayParams, defaultDelayParams } from './effects/delay';
 
@@ -53,35 +38,23 @@ export const defaultOptions: IOptions = {
 
 
 
-enum ActionFuncsName {
-    play = 'play',
-    stop = 'stop',
-    restart = 'restart',
-    pause = 'pause'
-};
 
 
 
 
-
-export default class Mixer extends AbstractMixer{
+export default class Mixer {
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
     protected _cxt: AudioContext = Master.cxt;
     
     protected _inputNode: AudioNode = Master.cxt.createGain();
-    protected _outputNode: AudioNode = Master.cxt.createGain();
     protected _gainNode: GainNode = Master.cxt.createGain();
     
     private _delay: Delay;
     private _panner: Panner;
 
-    private _loopTimer: NodeJS.Timeout | undefined;
-    private _loopRange: number = 0;
-
     private _volume: number = defaultOptions.volume!;
     protected _scale: number = defaultOptions.scale!;
     private _useDelay: boolean;
-    protected _loop: boolean = false;
     protected _duration: number = 0;
 
     protected _playedTime: number = 0;
@@ -96,16 +69,13 @@ export default class Mixer extends AbstractMixer{
     }
 
     readonly children: Mixer[] = [];
-    protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
+    
     parent: Mixer | undefined;
 
-    private _size: number = 0;
-    get size(): number{ return this._size};
 
     protected readonly isSound: boolean = false;
 
     constructor(options?: IOptions){
-        super();
 
         if(!options) options = defaultOptions;
 
@@ -120,7 +90,6 @@ export default class Mixer extends AbstractMixer{
 
         this._inputNode.connect(this._panner.node);
         this._panner.connect(this._gainNode);
-        this._gainNode.connect(this._outputNode);
     }
     set useDelay(flag: boolean){
         this._useDelay = flag;
@@ -147,93 +116,76 @@ export default class Mixer extends AbstractMixer{
         this.children.push(obj);
         obj.connect(this._inputNode);
         obj.parent = this;
-
-        this._size = Math.max(this._size, obj.realPosition);
-
-        if(obj.isSound){
-            const sound = obj as Sound;
-            this._size = Math.max(this._size, sound.realPosition + sound.duration*sound.realScale);
-        }
-
-        this._duration = this._calcDuration();
     }
     protected connect(output: AudioNode){
-        this._outputNode.connect(output);
+        this._gainNode.connect(output);
     }
 
-    private _makeAllChildrenDo(funcName: ActionFuncsName){
-        const children = this.children;
-        for(let i=0, len=children.length;i<len;i++){
-            children[i].actionFuncs[funcName]();
-        }
+
+    protected _playPosition: number = 0;
+    protected _playScale: number = 1;
+    set playScale(value: number){
+        this._playScale = value;
+        this._delay.realScale = value;
     }
+    get playScale(): number{
+        return this._playScale;
+    }
+
     play(){
-        this.playFunc();
-        this._makeAllChildrenDo(ActionFuncsName.play);
+        this._propagateOrder('play');
     }
     stop(){
-        this.stopFunc();
-        this._makeAllChildrenDo(ActionFuncsName.stop);
+        this._propagateOrder('stop');
     }
     pause(){
-        this.pauseFunc();
-        this._makeAllChildrenDo(ActionFuncsName.pause);
+        this._propagateOrder('pause');
     }
     restart(){
-        this.restartFunc();
-        this._makeAllChildrenDo(ActionFuncsName.restart);
-    }
-    playFunc: Function = ()=>{
-        this._playedTime = 0;
-        this._startedTime = Master.cxt.currentTime + this.realPosition/MILLI;
-        if(this._loop) {
-            this._loopTimer = setTimeout(this._loopFunc.bind(this), this.duration);
-        }
-    };
-    stopFunc: Function = ()=>{
-        this._clearLoop();
-    };
-    pauseFunc: Function = ()=>{
-        this._playedTime = (this._playedTime + Master.cxt.currentTime - this._startedTime) % (this._duration/MILLI);
-        this._clearLoop();
-    };
-    restartFunc: Function = ()=>{
-        if(this._loop){
-            this._loopTimer = setTimeout(this._loopFunc.bind(this), this._loopRange*this.scale);
-        }
-    };
-    private _clearLoop(): void{
-        if(this._loopTimer) clearTimeout(this._loopTimer);
-        this._loopTimer = undefined;
-    }
-    private _loopFunc(){
-        this.stop();
-        this.play();
+        this._propagateOrder('restart');
     }
 
-    set loop(frag: boolean){
-        this._loop = frag;
+    private _propagateOrder(orderName: string, parent?: Mixer, ) {
+        this._playPosition = this._calcPlayPosition(parent);
+        this.playScale = this._calcPlayScale(parent);
+
+        this.children.forEach((child)=>{
+            child._propagateOrder(orderName, this);
+        });
+
+        this[orderName + ActionSuffix]();
     }
 
-    private _calcDuration(): number{
-        let maxEndPoint = 0;
-        const children = this.children;
-        for(let i=0, len=children.length;i<len;i++){
-            const child = children[i];
-            maxEndPoint = Math.max(maxEndPoint, child.realPosition + child.duration);
+    private _calcPlayPosition(parent?: Mixer){
+        if(parent){
+            return parent._playPosition + this._position*parent._playScale;
+        } else {
+            return 0;
         }
-        return maxEndPoint;
     }
+    private _calcPlayScale(parent?: Mixer){
+        if(parent){
+            return parent._playScale * this._scale;
+        } else {
+            return this._scale;
+        }
+    }
+
+
+    playAction: Function = ()=>{
+    };
+    stopAction: Function = ()=>{
+    };
+    pauseAction: Function = ()=>{
+    };
+    restartAction: Function = ()=>{
+    };
+
     get duration(): number{
         return this._duration;
     }
 
-    set loopRange(value: number){
-        this._loopRange = value;
-    }
-    get loopRange(): number{
-        return this._loopRange;
-    }
+
 
     set volume(value: number){
         this._volume = value;
@@ -244,31 +196,11 @@ export default class Mixer extends AbstractMixer{
     }
     set scale(value: number) {
         this._scale = value;
-        this._delay.realScale = this.realScale;
     }
     get scale(): number{
         return this._scale;
     }
-    get worldScale(): number{
-        if(this.parent){
-            return this.parent.worldScale*this.parent.scale;
-        } else {
-            return 1;
-        }
-    }
-    get realScale(): number{
-        return  this.worldScale*this.scale;
-    }
-    get worldPosition(): number{
-        if(this.parent){
-            return this.parent.worldPosition+this.parent.position*this.parent.worldScale;
-        } else {
-            return 0;
-        }
-    }
-    get realPosition(): number{
-        return this.worldPosition + this.position*this.worldScale;
-    }
+
 
     get panner(): Panner{
         return this._panner;
