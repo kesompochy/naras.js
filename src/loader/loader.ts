@@ -1,44 +1,42 @@
-import Master from '../app/narasmaster';
+import Master from '../app/master';
+
+import Audio from '../audio/audio';
 
 export default class Loader{
-    private _resources: Map<string, AudioBuffer> = new Map();
-    private _datas: Map<string, ArrayBuffer> = new Map();
-    private _tasks: Array<Promise<ArrayBuffer>> = [];
-    private _loadThen: Function = function(){};
-    private _cxt: AudioContext = Master.cxt;
+    private static _resources: Map<string, Audio> = new Map();
+    private static _tasks: Array<Promise<ArrayBuffer>> = [];
+    private static _loadThen: Function = function(){};
+    private static _cxt: AudioContext = Master.cxt;
 
 
-    add(id: string, src: string): Loader{
+    static add(id: string, src: string): Loader{
         const promise = this._promiseLoadingSound(id, src);
         this._tasks.push(promise);
         return this;
     }
-    loadAll(): void{
+    static loadAll(): void{
         Promise.all(this._tasks)
             .then(()=>{this._loadThen();});
     }
-    loadThen(func: Function){
+    static loadThen(func: Function){
         this._loadThen = func;
     }
-    private _promiseLoadingSound(id: string, src: string): Promise<any>{
+    private static _promiseLoadingSound(id: string, src: string): Promise<any>{
         const promise = new Promise((resolve)=>{
             fetch(src).then((res)=>{
                 return res.arrayBuffer();
             }).then((data)=>{
-                this._datas.set(id, data);
                 return this._cxt.decodeAudioData(data);
             }).then((buf)=>{
-                this._resources.set(id, buf);
+                const audio = new Audio(buf);
+                this._resources.set(id, audio);
                 resolve(buf);
             })
         });
 
         return promise;
     }
-    getResource(id: string): AudioBuffer | undefined{
+    static get(id: string): Audio | undefined{
         return this._resources.get(id);
-    }
-    getData(id: string): ArrayBuffer | undefined{
-        return this._datas.get(id);
     }
 }

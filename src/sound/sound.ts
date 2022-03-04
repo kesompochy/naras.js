@@ -4,73 +4,80 @@ interface ISoundOptions extends IOptions{
     loop?: boolean;
 }
 
+const MILLI = 1000;
+
 const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
 
-import Container from '../mixer/mixer';
+import Mixer from '../mixer/mixer';
+import Audio from '../audio/audio';
 
 
-export default class Sound extends Container{
-    private _buffer: AudioBuffer;
-    private _sourceNode: AudioBufferSourceNode | undefined;
-    private _duration: number = 0;
-    private _playedTime: number = 0;
-    private _startedTime: number = 0;
-    private _loop: boolean = false;
+export default class Sound extends Mixer{
+    private _audio: Audio | undefined;
+    private _sourceNode: AudioBufferSourceNode | undefined | null;
+    protected _duration: number = 0;
+
+    protected _loop: boolean = false;
     private _playing: boolean = false;
     private _endTimer: NodeJS.Timeout | undefined;
 
+    protected readonly isSound: boolean = true;
     
-    constructor(buf: AudioBuffer, options?: ISoundOptions){
+    constructor(audio?: Audio, options?: ISoundOptions){
         
         super(options);
-        this._buffer = buf;
-        this._duration = buf.duration;
+        this._audio = audio;
+        if(audio) this._duration = audio.duration*MILLI;
 
         if(!options) options = defaultSoundOptions;
 
         this.loop = options.loop || defaultSoundOptions.loop!;
 
-        this.actionFuncs = {play: this.playFunc, restart: this.restartFunc, stop: this.stopFunc, pause: this.pauseFunc};
 
     }
 
 
-    set buffer(buffer: AudioBuffer){
-        this._buffer = buffer;
-        this._duration = buffer.duration;
+    set audio(audio: Audio){
+        this._audio = audio;
+        this._duration = audio.duration;
     }
 
     private _play(offset: number = 0){
-        if(!this._buffer){
+        if(!this._audio){
             return;
         }
 
         const cxt = this._cxt;
 
         this._sourceNode = cxt.createBufferSource()!;
-        this._sourceNode.buffer = this._buffer;
+        this._sourceNode.buffer = this._audio.buffer;
 
         this._sourceNode.loop = this._loop;
-        const realPitch = this.calcWorldPitch() * this._pitch;
-        this._sourceNode.playbackRate.value = realPitch;
+        
+        const playScale = this._playScale;
+        const playPosition = this._playPosition;
+        this._sourceNode.playbackRate.value = 1/playScale;
+
+
         
 
         const sourceNode = this._sourceNode;
 
         sourceNode.connect(this._inputNode);
 
-        sourceNode.start(0, offset);
+        const startTime = cxt.currentTime + playPosition/MILLI;
+        sourceNode.start(startTime, offset);
 
         
-
         this._sourceNode = sourceNode;
 
-        this._startedTime = cxt.currentTime;
+        this._startedTime =startTime;
 
         this._playing = true;
+
         
         if(!this.loop) {
-            const endTime = this._duration*1000/realPitch;
+            const endTime = (playPosition+this._duration*playScale);
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
 
             if(this._endTimer) {
@@ -81,23 +88,23 @@ export default class Sound extends Container{
         }
     }
 
-    reStartFunc: Function = () => {
+    restartAction: Function = () => {
         this._play(this._playedTime);
     }
-    playFunc: Function = () => {
+    playAction: Function = () => {
         this._playedTime = 0;
         this._play(0);
     }
-    stopFunc: Function = () =>{
+    stopAction: Function = () =>{
         if(this._playing && this._sourceNode){
             this._sourceNode.stop(0);
             this._sourceNode.disconnect(0);
             this._endThen();
         }
     }
-    pauseFunc: Function = () =>{
+    pauseAction: Function = () =>{
         if(this._playing) {
-            this._playedTime = (this._playedTime + this._cxt!.currentTime - this._startedTime) % this._duration;
+            this._playedTime = (this._playedTime + this._cxt!.currentTime - this._startedTime) % (this._duration/MILLI);
             this._playing = false;
             this._sourceNode!.stop(0);
         }
@@ -108,6 +115,7 @@ export default class Sound extends Container{
     private _endThen(): void{
         this._playing = false;
         this._playedTime = 0;
+        this._sourceNode = null;
         this._endTimer = undefined;
     }
     get playing(): boolean{
@@ -121,6 +129,9 @@ export default class Sound extends Container{
     }
     get loop(): boolean{
         return this._loop;
+    }
+    get duration(): number{
+        return this._duration;
     }
 }
 

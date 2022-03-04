@@ -1,113 +1,110 @@
-import Master from '../app/narasmaster';
+import Master from '../app/master';
 
 import Delay from './effects/delay';
 import Panner from './effects/pan';
 
-interface ActionFuncs{
-    play: CallableFunction;
-    stop: CallableFunction;
-    restart: CallableFunction;
-    pause: CallableFunction;
-}
+import Sound from '../sound/sound';
 
-abstract class AbstractMixer {
-    protected abstract playFunc: Function;
-    protected abstract stopFunc: Function;
-    protected abstract pauseFunc: Function;
-    protected abstract restartFunc: Function;
-    protected abstract actionFuncs: ActionFuncs;
-}
+const MILLI = 1000;
+const ActionSuffix = 'Action';
 
 import { IDelayParams, defaultDelayParams } from './effects/delay';
+
+interface IPannerParams {
+    x?: number;
+    y?: number;
+    z?: number;
+}
 
 export interface IOptions {
     volume?: number;
     loop?: boolean;
-    pitch?: number;
+    scale?: number;
     delay?: IDelayParams;
     useDelay?: boolean;
+    panner?: IPannerParams;
 }
 
 
 export const defaultOptions: IOptions = {
     volume: 1,
     loop: false,
-    pitch: 1,
+    scale: 1,
     delay: defaultDelayParams,
-    useDelay: false
+    useDelay: false,
+    panner: {x: 0, y: 0, z: 0}
 }
 
 
 
 
-enum ActionFuncsName {
-    play = 'play',
-    stop = 'stop',
-    restart = 'restart',
-    pause = 'pause'
-};
 
 
 
 
-
-export default class Mixer extends AbstractMixer{
+export default class Mixer {
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
     protected _cxt: AudioContext = Master.cxt;
     
     protected _inputNode: AudioNode = Master.cxt.createGain();
-    protected _outputNode: AudioNode = Master.cxt.createGain();
     protected _gainNode: GainNode = Master.cxt.createGain();
     
     private _delay: Delay;
     private _panner: Panner;
 
-
     private _volume: number = defaultOptions.volume!;
-    protected _pitch: number = defaultOptions.pitch!;
-    private _delaying: boolean;
+    protected _scale: number = defaultOptions.scale!;
+    private _useDelay: boolean;
+    protected _duration: number = 0;
+
+    protected _playedTime: number = 0;
+    protected _startedTime: number = 0;
+
+    private _position: number = 0;
+    set position(value: number){
+        this._position = value;
+    }
+    get position(): number{
+        return this._position;
+    }
 
     readonly children: Mixer[] = [];
-    protected actionFuncs: ActionFuncs = {play: this.playFunc, stop: this.stopFunc, restart: this.restartFunc, pause: this.pauseFunc};
-    parent: Mixer | undefined;
     
+    parent: Mixer | undefined;
+
+
+    protected readonly isSound: boolean = false;
+
     constructor(options?: IOptions){
-        super();
 
         if(!options) options = defaultOptions;
 
-        this.volume = options.volume || defaultOptions.volume!;
-        this.pitch = options.pitch || defaultOptions.pitch!;
-        this._delaying = options.useDelay || defaultOptions.useDelay!;
-
-        this._panner = new Panner(0, 0, 0);
+        const panParam = options.panner || defaultOptions.panner!;
+        this._panner = new Panner(panParam.x, panParam.y, panParam.z);
         this._delay = new Delay(this._inputNode, options.delay || defaultOptions.delay!);
+
+        this.volume = options.volume || defaultOptions.volume!;
+        this.scale = options.scale || defaultOptions.scale!;
+        this._useDelay = options.useDelay || defaultOptions.useDelay!;
+        this.useDelay = this._useDelay;
 
         this._inputNode.connect(this._panner.node);
         this._panner.connect(this._gainNode);
-        this._gainNode.connect(this._outputNode);
-        
-
-        if(options.useDelay){
-            this.useDelay();
+    }
+    set useDelay(flag: boolean){
+        this._useDelay = flag;
+        if(flag) {
+            this._delay.connect(this._gainNode);
+        } else {
+            this._delay.disconnect();
         }
-
-
-
+        
     }
-    protected useDelay(){
-        this._delaying = true;
-        this._delay.connect(this._gainNode);
-    }
-    protected unuseDelay(){
-        this._delaying = false;
-        this._delay.disconnect();
+    get useDelay(): boolean{
+        return this._useDelay;
     }
     get delay(): Delay{
         return this._delay;
-    }
-    get delaying(): boolean{
-        return this._delaying;
     }
 
     addChildren(...ary: Mixer[]){
@@ -121,35 +118,74 @@ export default class Mixer extends AbstractMixer{
         obj.parent = this;
     }
     protected connect(output: AudioNode){
-        this._outputNode.connect(output);
+        this._gainNode.connect(output);
     }
 
-    private _makeAllChildrenDo(funcName: ActionFuncsName){
-        const children = this.children;
-        for(let i=0, len=children.length;i<len;i++){
-            children[i].actionFuncs[funcName]();
-        }
+
+    protected _playPosition: number = 0;
+    protected _playScale: number = 1;
+    set playScale(value: number){
+        this._playScale = value;
+        this._delay.realScale = value;
     }
+    get playScale(): number{
+        return this._playScale;
+    }
+
     play(){
-        this.playFunc();
-        this._makeAllChildrenDo(ActionFuncsName.play);
+        this._propagateOrder('play');
     }
     stop(){
-        this.stopFunc();
-        this._makeAllChildrenDo(ActionFuncsName.stop);
+        this._propagateOrder('stop');
     }
     pause(){
-        this.pauseFunc();
-        this._makeAllChildrenDo(ActionFuncsName.pause);
+        this._propagateOrder('pause');
     }
     restart(){
-        this.restartFunc();
-        this._makeAllChildrenDo(ActionFuncsName.restart);
+        this._propagateOrder('restart');
     }
-    playFunc: Function = ()=>{};
-    stopFunc: Function = ()=>{};
-    pauseFunc: Function = ()=>{};
-    restartFunc: Function = ()=>{};
+
+    private _propagateOrder(orderName: string, parent?: Mixer, ) {
+        this._playPosition = this._calcPlayPosition(parent);
+        this.playScale = this._calcPlayScale(parent);
+
+        this.children.forEach((child)=>{
+            child._propagateOrder(orderName, this);
+        });
+
+        this[orderName + ActionSuffix]();
+    }
+
+    private _calcPlayPosition(parent?: Mixer){
+        if(parent){
+            return parent._playPosition + this._position*parent._playScale;
+        } else {
+            return 0;
+        }
+    }
+    private _calcPlayScale(parent?: Mixer){
+        if(parent){
+            return parent._playScale * this._scale;
+        } else {
+            return this._scale;
+        }
+    }
+
+
+    playAction: Function = ()=>{
+    };
+    stopAction: Function = ()=>{
+    };
+    pauseAction: Function = ()=>{
+    };
+    restartAction: Function = ()=>{
+    };
+
+    get duration(): number{
+        return this._duration;
+    }
+
+
 
     set volume(value: number){
         this._volume = value;
@@ -158,19 +194,13 @@ export default class Mixer extends AbstractMixer{
     get volume(): number{
         return this._volume;
     }
-    set pitch(value: number) {
-        this._pitch = value;
+    set scale(value: number) {
+        this._scale = value;
     }
-    get pitch(): number{
-        return this._pitch;
+    get scale(): number{
+        return this._scale;
     }
-    protected calcWorldPitch(): number{
-        if(this.parent){
-            return this.parent.calcWorldPitch()*this.parent.pitch;
-        } else {
-            return 1;
-        }
-    }
+
 
     get panner(): Panner{
         return this._panner;
