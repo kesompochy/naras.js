@@ -8,11 +8,11 @@ const MILLI = 1000;
 
 const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
 
-import Container from '../mixer/mixer';
+import Mixer from '../mixer/mixer';
 import Audio from '../audio/audio';
 
 
-export default class Sound extends Container{
+export default class Sound extends Mixer{
     private _audio: Audio | undefined;
     private _sourceNode: AudioBufferSourceNode | undefined | null;
     protected _duration: number = 0;
@@ -33,7 +33,6 @@ export default class Sound extends Container{
 
         this.loop = options.loop || defaultSoundOptions.loop!;
 
-        this.actionFuncs = {play: this.playFunc, restart: this.restartFunc, stop: this.stopFunc, pause: this.pauseFunc};
 
     }
 
@@ -55,16 +54,18 @@ export default class Sound extends Container{
 
         this._sourceNode.loop = this._loop;
         
-        const realScale = this.realScale;
-        const realPosition = this.realPosition;
-        this._sourceNode.playbackRate.value = 1/realScale;
+        const playScale = this._playScale;
+        const playPosition = this._playPosition;
+        this._sourceNode.playbackRate.value = 1/playScale;
+
+
         
 
         const sourceNode = this._sourceNode;
 
         sourceNode.connect(this._inputNode);
 
-        const startTime = cxt.currentTime + this.realPosition/MILLI;
+        const startTime = cxt.currentTime + playPosition/MILLI;
         sourceNode.start(startTime, offset);
 
         
@@ -76,7 +77,7 @@ export default class Sound extends Container{
 
         
         if(!this.loop) {
-            const endTime = (realPosition+this._duration*realScale);
+            const endTime = (playPosition+this._duration*playScale);
             setTimeout(this._disconnectSourceNode.bind(this), endTime, sourceNode);
 
             if(this._endTimer) {
@@ -87,21 +88,21 @@ export default class Sound extends Container{
         }
     }
 
-    restartFunc: Function = () => {
+    restartAction: Function = () => {
         this._play(this._playedTime);
     }
-    playFunc: Function = () => {
+    playAction: Function = () => {
         this._playedTime = 0;
         this._play(0);
     }
-    stopFunc: Function = () =>{
+    stopAction: Function = () =>{
         if(this._playing && this._sourceNode){
             this._sourceNode.stop(0);
             this._sourceNode.disconnect(0);
             this._endThen();
         }
     }
-    pauseFunc: Function = () =>{
+    pauseAction: Function = () =>{
         if(this._playing) {
             this._playedTime = (this._playedTime + this._cxt!.currentTime - this._startedTime) % (this._duration/MILLI);
             this._playing = false;
