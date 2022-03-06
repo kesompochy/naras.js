@@ -4,7 +4,7 @@ import {MasterMixer} from '../mixer/mixer';
 
 export default class App {
     loader: any = Loader;
-    master: MasterMixer = new MasterMixer();
+    baseMixer: MasterMixer = new MasterMixer();
     private _unlockEvents: string[] = ['click', 'scroll', 'touchstart'];
     constructor(){
         for(let i=0, len=this._unlockEvents.length;i<len;i++){
