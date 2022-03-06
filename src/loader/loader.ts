@@ -12,16 +12,20 @@ export default class Loader{
     private static _progressManager: ProgressManager = ()=>{};
     private static _taskNum: number = 0;
 
+    static loaded: boolean = false;
+
     static add(id: string, src: string): Loader{
         const promise = this._promiseLoadingSound(id, src);
         this._tasks.push(promise);
+        this.loaded = false;
         return this;
     }
     static loadAll(): void{
         this._taskNum = this._tasks.length;
         this._progressManager(this._taskNum, this._taskNum);
         Promise.all(this._tasks)
-            .then(()=>{this._loadThen();});
+            .then(()=>{this.loaded = true;
+                        this._loadThen();});
     }
     static loadThen(func: Function){        
         this._loadThen = func;
