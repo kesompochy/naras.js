@@ -30,4 +30,8 @@ export default class App {
     loadThen(func: Function): void{
         this.loader.loadThen(func);
     }
+
+    get loaded(): boolean{
+        return this.loader.loaded;
+    }
 }
