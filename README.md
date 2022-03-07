@@ -32,8 +32,8 @@ The main file is `naras.min.js` in `./dist/`.
         const mixer = new NARAS.Mixer();
 
         //every Sound or Mixer needs to connect to App.master to play sound
-        app.master.addChild(sound1);
-        app.master.addChild(mixer);
+        app.baseMixer.addChild(sound1);
+        app.baseMixer.addChild(mixer);
         
         //A Mixer can bundle Sounds or other Mixers
         mixer.addChild(sound2);
