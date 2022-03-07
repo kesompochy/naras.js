@@ -36,12 +36,6 @@ export const defaultOptions: IOptions = {
 }
 
 
-
-
-
-
-
-
 export default class Mixer {
     //すべてのContainerは音をinputNodeから取り込み、gainNodeから排出していくことにする。
     protected _cxt: AudioContext = Master.cxt;
@@ -77,15 +71,15 @@ export default class Mixer {
 
     constructor(options?: IOptions){
 
-        if(!options) options = defaultOptions;
+        options = Object.assign(defaultOptions, options);
 
-        const panParam = options.panner || defaultOptions.panner!;
+        const panParam = options.panner!
         this._panner = new Panner(panParam.x, panParam.y, panParam.z);
-        this._delay = new Delay(this._inputNode, options.delay || defaultOptions.delay!);
+        this._delay = new Delay(this._inputNode, options.delay!);
 
-        this.volume = options.volume || defaultOptions.volume!;
-        this.scale = options.scale || defaultOptions.scale!;
-        this._useDelay = options.useDelay || defaultOptions.useDelay!;
+        this.volume = options.volume!
+        this.scale = options.scale!
+        this._useDelay = options.useDelay!
         this.useDelay = this._useDelay;
 
         this._inputNode.connect(this._panner.node);
