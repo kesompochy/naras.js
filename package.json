@@ -1,6 +1,6 @@
 {
   "name": "naras.js",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "The simple audio library with WebAudioAPI.",
   "main": "./dist/naras.min.js",
   "scripts": {
