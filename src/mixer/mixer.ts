@@ -3,8 +3,6 @@ import Master from '../app/master';
 import Delay from './effects/delay';
 import Panner from './effects/pan';
 
-import Sound from '../sound/sound';
-
 const MILLI = 1000;
 const ActionSuffix = 'Action';
 
@@ -62,7 +60,7 @@ export default class Mixer {
         return this._position;
     }
 
-    readonly children: Mixer[] = [];
+    readonly children: Set<Mixer> = new Set();
     
     parent: Mixer | undefined;
 
@@ -107,14 +105,25 @@ export default class Mixer {
         }
     }
     addChild(obj: Mixer){
-        this.children.push(obj);
-        obj.connect(this._inputNode);
-        obj.parent = this;
+        if(!obj.parent){
+            this.children.add(obj);
+            obj.connect(this);
+            obj.parent = this;
+        }
     }
-    protected connect(output: AudioNode){
-        this._gainNode.connect(output);
+    removeChild(child: Mixer): void{
+        if(this.children.has(child)){
+            child._gainNode.disconnect(0);
+            child.parent = undefined;
+            this.children.delete(child);
+        }
     }
-
+    protected connect(mixer: Mixer){
+        this._gainNode.connect(mixer._inputNode);
+    }
+    protected disconnect(){
+        this._gainNode.disconnect(0);
+    }
 
     protected _playPosition: number = 0;
     protected _playScale: number = 1;
@@ -204,6 +213,6 @@ export default class Mixer {
 export class MasterMixer extends Mixer{
     constructor(){
         super();
-        this.connect(Master.cxt.destination);
+        this._gainNode.connect(Master.cxt.destination);
     }
 }
