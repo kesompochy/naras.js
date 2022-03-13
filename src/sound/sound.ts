@@ -1,6 +1,6 @@
-import { IOptions, defaultOptions } from '../mixer/mixer';
+import { IMixerOptions, defaultOptions } from '../mixer/mixer';
 
-interface ISoundOptions extends IOptions{
+interface ISoundOptions extends IMixerOptions{
     loop?: boolean;
 }
 
