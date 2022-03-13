@@ -1,8 +1,8 @@
 
-import Sound from './sound/sound';
-import App from './app/application';
-import Mixer from './mixer/mixer';
-import Processer from './processer/processer';
-import Loader from './loader/loader';
+import Sound from './sound';
+import App from './app';
+import Mixer from './mixer';
+import Processer from './processer';
+import Loader from './loader';
 
 export { App, Mixer, Sound, Processer, Loader };
