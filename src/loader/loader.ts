@@ -2,7 +2,11 @@ import Master from '../app/master';
 
 import Audio from '../audio/audio';
 
+import Processer from '../processer';
+
 type ProgressManager = (all: number, rest: number)=>void;
+
+
 
 export default class Loader{
     private static _resources: Map<string, Audio> = new Map();
@@ -39,8 +43,10 @@ export default class Loader{
             fetch(src).then((res)=>{
                 return res.arrayBuffer();
             }).then((data)=>{
+                console.log(data);
                 return this._cxt.decodeAudioData(data);
             }).then((buf)=>{
+                console.log(buf);
                 const audio = new Audio(buf);
                 this._resources.set(id, audio);
                 this._tasks.shift();
@@ -51,6 +57,7 @@ export default class Loader{
 
         return promise;
     }
+
     static manageProgress(func: ProgressManager){
         this._progressManager = func;
     }
