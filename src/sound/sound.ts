@@ -1,16 +1,18 @@
 import { IMixerOptions, defaultOptions } from '../mixer/mixer';
 
+
 interface ISoundOptions extends IMixerOptions{
     loop?: boolean;
 }
 
 const MILLI = 1000;
 
-const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, {loop: false});
+const defaultSoundOptions: ISoundOptions = Object.assign(defaultOptions, 
+    {loop: false,
+    trim: undefined});
 
 import Mixer from '../mixer/mixer';
 import Audio from '../audio/audio';
-
 
 export default class Sound extends Mixer{
     private _audio: Audio | undefined;
@@ -26,12 +28,17 @@ export default class Sound extends Mixer{
     constructor(audio?: Audio, options?: ISoundOptions){
         
         super(options);
-        this._audio = audio;
-        if(audio) this._duration = audio.duration*MILLI;
 
-        if(!options) options = defaultSoundOptions;
+        options = Object.assign(defaultSoundOptions, options);
 
-        this.loop = options.loop || defaultSoundOptions.loop!;
+        if(audio){
+            this._audio = audio;
+            this._duration = audio.duration*MILLI;
+        }
+
+
+
+        this.loop = options.loop!;
 
 
     }
