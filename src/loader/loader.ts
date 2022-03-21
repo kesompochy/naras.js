@@ -2,7 +2,10 @@ import Master from '../app/master';
 
 import Audio from '../audio/audio';
 
+
 type ProgressManager = (all: number, rest: number)=>void;
+
+
 
 export default class Loader{
     private static _resources: Map<string, Audio> = new Map();
@@ -51,6 +54,7 @@ export default class Loader{
 
         return promise;
     }
+
     static manageProgress(func: ProgressManager){
         this._progressManager = func;
     }
