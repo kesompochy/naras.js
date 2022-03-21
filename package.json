@@ -1,8 +1,9 @@
 {
   "name": "naras.js",
-  "version": "1.2.7",
+  "version": "1.2.10",
   "description": "The simple audio library with WebAudioAPI.",
   "main": "./dist/naras.min.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack --config webpack.dev.js",

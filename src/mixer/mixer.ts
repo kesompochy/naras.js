@@ -14,7 +14,7 @@ interface IPannerParams {
     z?: number;
 }
 
-export interface IOptions {
+export interface IMixerOptions {
     volume?: number;
     loop?: boolean;
     scale?: number;
@@ -24,7 +24,7 @@ export interface IOptions {
 }
 
 
-export const defaultOptions: IOptions = {
+export const defaultOptions: IMixerOptions = {
     volume: 1,
     loop: false,
     scale: 1,
@@ -67,7 +67,7 @@ export default class Mixer {
 
     protected readonly isSound: boolean = false;
 
-    constructor(options?: IOptions){
+    constructor(options?: IMixerOptions){
 
         options = Object.assign(defaultOptions, options);
 
