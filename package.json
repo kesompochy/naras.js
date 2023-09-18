@@ -1,9 +1,14 @@
 {
   "name": "naras.js",
-  "version": "1.2.11",
+  "version": "0.1.0",
   "description": "The simple audio library with WebAudioAPI.",
-  "main": "./dist/naras.min.js",
+  "main": "./dist/egak.min.js",
+  "module": "./dist/egak.js",
   "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc --emitDeclarationOnly --project tsconfig.exclude.json && tsc-paths -p tsconfig.exclude.json -s ./src -o ./dist",
