@@ -1,20 +1,18 @@
 {
-    "compilerOptions": {
-      "esModuleInterop": true,
-      "experimentalDecorators": true,
-      "downlevelIteration": true,
-      "module": "CommonJS",
-      "moduleResolution": "node",
-      "noImplicitAny": false,
-      "outDir": "./dist/",
-      "rootDir": "./src/",
-      "sourceMap": true,
-      "strict": true,
-      "target": "ES5",   
-      "declaration": true,
-      "declarationMap": true                    
-    },
-    "exclude": [
-      "node_modules"
-    ]
-  }
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "downlevelIteration": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "outDir": "./dist/",
+    "rootDir": "./src/",
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES5",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "exclude": ["node_modules"]
+}
